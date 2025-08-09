@@ -4,13 +4,15 @@
 #include <omnetpp.h>
 
 class SCMFaultInjector : public omnetpp::cSimpleModule {
-  private:
+  public:
     enum FaultType {
-        NONE,
         DISTANCE_TAMPER,
-        BETA_MODIFICATION
+        BETA_MODIFICATION,
+        PARENT_SWITCH
     };
     
+  private:
+    FaultType faultType;
     void injectFault();
     
   protected:

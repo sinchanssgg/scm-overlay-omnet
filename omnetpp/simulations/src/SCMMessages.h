@@ -3,20 +3,30 @@
 
 #include <omnetpp.h>
 
-// Message types for SCM protocol
 class SCMControlMessage : public omnetpp::cMessage {
   public:
     enum MessageType {
-        ALPHA_UPDATE,  // For subtree size propagation
-        BETA_UPDATE,   // For cost share propagation
-        FAULT_NOTIFY   // For fault propagation
+        ALPHA_UPDATE,
+        BETA_UPDATE,
+        FAULT_NOTIFY
     };
     
+  private:
     MessageType msgType;
     int senderId;
-    double value;  // Can carry alpha/beta values
+    double value;
     
-    SCMControlMessage(const char *name=nullptr, short kind=0) : cMessage(name, kind) {}
+  public:
+    SCMControlMessage(const char *name=nullptr, short kind=0) : 
+        cMessage(name, kind) {}
+    
+    // Getters and setters
+    MessageType getMsgType() const { return msgType; }
+    void setMsgType(MessageType t) { msgType = t; }
+    int getSenderId() const { return senderId; }
+    void setSenderId(int id) { senderId = id; }
+    double getValue() const { return value; }
+    void setValue(double v) { value = v; }
 };
 
 #endif // SCMMESSAGES_H

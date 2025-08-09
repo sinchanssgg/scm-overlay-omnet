@@ -1,0 +1,47 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container: omnetpp/omnetpp:6.0.1-ubuntu20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        apt-get update
+        apt-get install -y python3-pip
+        pip3 install -r requirements.txt
+
+    - name: Build simulation
+      working-directory: omnetpp/simulations
+      run: |
+        opp_makemake -f --deep -o scm-simulations
+        make -j$(nproc)
+
+    - name: Run tests
+      working-directory: scripts
+      run: |
+        python3 -m pytest tests/
+
+  docker:
+    needs: build
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build Docker image
+      run: docker-compose -f docker/docker-compose.yml build
+
+    - name: Test Docker run
+      run: |
+        docker-compose -f docker/docker-compose.yml run --rm simulation \
+          /workspace/omnetpp/simulations/scm-simulations -c BaselineCBT -n ../networks

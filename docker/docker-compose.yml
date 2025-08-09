@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  simulation:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../results:/workspace/results
+    command: ["/workspace/scripts/run_experiments.sh"]
+    environment:
+      - OMNETPP_IMAGE_VERSION=6.0.1
+
+  visualization:
+    image: python:3.8-slim
+    working_dir: /workspace
+    volumes:
+      - ../results:/workspace/results
+      - ../scripts:/workspace/scripts
+    depends_on:
+      - simulation
+    command: ["python3", "scripts/visualization/plot_metrics.py", "results/latest"]
+
+  analysis:
+    image: python:3.8-slim
+    working_dir: /workspace
+    volumes:
+      - ../results:/workspace/results
+      - ../scripts:/workspace/scripts
+    depends_on:
+      - simulation
+    command: ["python3", "scripts/analysis/process_results.py", "results/latest"]
+
+volumes:
+  results:

@@ -1,5 +1,5 @@
 TARGET = scm-simulations
-SRCS = src/main.cc src/SCMNode.cc src/SCMMessages.cc src/SCMFaultInjector.cc
+SRCS = src/main.cc src/SCMNode.cc src/SCMMessages.cc src/SCMFaultInjector.cc src/TwitchNetworkInitializer.cc
 
 all: $(TARGET)
 

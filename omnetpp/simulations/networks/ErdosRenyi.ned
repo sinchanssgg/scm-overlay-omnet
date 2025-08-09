@@ -3,19 +3,16 @@ package overlay;
 import "SCMNode.ned";
 import "SCMFaultInjector.ned";
 
-network SCMNetwork
+network ErdosRenyi
 {
     parameters:
-        int numNodes @default(10);
-        double faultProbability @default(0.1);
-        double faultInterval @default(10s);
-        
+        int numNodes @default(20);
+        double connectionProbability @default(0.3);
         @display("bgb=800,600");
     
     submodules:
         faultInjector: SCMFaultInjector {
-            faultProbability = faultProbability;
-            interval = faultInterval;
+            @display("p=50,50");
         }
         
         node[numNodes]: SCMNode {
@@ -27,9 +24,12 @@ network SCMNetwork
         }
     
     connections allowunconnected:
-        // Create random connections (can replace with specific topology)
+        // Random connections with given probability
         for i=0..numNodes-2, for j=i+1..numNodes-1 {
-            node[i].port++ <--> { delay = 100ms; } <--> node[j].port++ 
-                if uniform(0,1) < 0.3; // 30% connection probability
+            node[i].port++ <--> { 
+                delay = 100ms; 
+                @display("ls=blue,1");
+            } <--> node[j].port++ 
+                if uniform(0,1) < connectionProbability;
         }
 }
