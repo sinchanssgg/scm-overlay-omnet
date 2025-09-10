@@ -21,7 +21,7 @@ OMNeT++ implementation of the self-stabilizing multicast overlay algorithm from:
 
 - OMNeT++ 6.x
 - Python 3.8+
-- Docker 
+- Docker gi 
 
 ### Installation
 
