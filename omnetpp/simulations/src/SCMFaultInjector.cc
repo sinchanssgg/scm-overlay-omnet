@@ -50,10 +50,11 @@ void SCMFaultInjector::injectFault()
                     break;
             }
             
-            // Notify neighbors about the fault
+            // Notify the node about the fault via direct message delivery
             SCMControlMessage *faultMsg = new SCMControlMessage("FaultNotify");
             faultMsg->setMsgType(SCMControlMessage::FAULT_NOTIFY);
-            send(faultMsg, "out", i);
+            faultMsg->setSenderId(-1);  // From fault injector
+            sendDirect(faultMsg, node, "port$i", 0);
         }
     }
 }

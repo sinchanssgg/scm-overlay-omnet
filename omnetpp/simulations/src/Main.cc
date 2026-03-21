@@ -1,9 +1,4 @@
+// Entry point placeholder.
+// OMNeT++ provides main() via the simulation library.
+// Module registrations are in their respective .cc files.
 #include <omnetpp.h>
-
-class SCMNode : public cSimpleModule {
-protected:
-    virtual void initialize() override {
-        EV << "Initializing " << getFullPath() << endl;
-    }
-};
-Define_Module(SCMNode);
