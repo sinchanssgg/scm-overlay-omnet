@@ -1,3 +1,5 @@
+package overlay;
+
 simple SCMNode {
     parameters:
         int id;

@@ -1,7 +1,5 @@
 package overlay;
 
-import "SCMNode.ned";
-
 network SimpleNetwork {
     submodules:
         node1: SCMNode {

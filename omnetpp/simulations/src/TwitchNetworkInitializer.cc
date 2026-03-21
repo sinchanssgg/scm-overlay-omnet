@@ -46,13 +46,19 @@ class TwitchNetworkInitializer : public cModule
                 continue;
             }
 
-            // Create bidirectional connection with channel
+            // Create bidirectional connection with channels
             cGate *srcOut = srcMod->getOrCreateFirstUnconnectedGate("port$o", 0, false, true);
             cGate *tgtIn = tgtMod->getOrCreateFirstUnconnectedGate("port$i", 0, false, true);
+            cGate *tgtOut = tgtMod->getOrCreateFirstUnconnectedGate("port$o", 0, false, true);
+            cGate *srcIn = srcMod->getOrCreateFirstUnconnectedGate("port$i", 0, false, true);
 
-            cDatarateChannel *ch = cDatarateChannel::create("channel");
-            ch->setDelay(0.1);  // 100ms delay
-            srcOut->connectTo(tgtIn, ch);
+            cDatarateChannel *ch1 = cDatarateChannel::create("channel");
+            ch1->setDelay(0.1);
+            srcOut->connectTo(tgtIn, ch1);
+
+            cDatarateChannel *ch2 = cDatarateChannel::create("channel");
+            ch2->setDelay(0.1);
+            tgtOut->connectTo(srcIn, ch2);
 
             connectionsCreated++;
 

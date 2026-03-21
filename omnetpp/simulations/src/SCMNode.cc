@@ -397,7 +397,7 @@ void SCMNode::handleProofRequest(SCMControlMessage* msg)
     // Send back to requester via direct message
     cModule *requester = getNodeById(msg->getSenderId());
     if (requester) {
-        sendDirect(resp, requester, "port$i", 0);
+        sendDirect(resp, requester->gate("port$i", 0));
     } else {
         delete resp;
     }

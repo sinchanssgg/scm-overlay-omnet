@@ -1,3 +1,5 @@
+package overlay;
+
 simple SCMFaultInjector {
     parameters:
         int faultType @default(0);           // 0=DISTANCE_TAMPER, 1=BETA_MODIFICATION, 2=PARENT_SWITCH

@@ -1,8 +1,5 @@
 package overlay;
 
-import "SCMNode.ned";
-import "SCMFaultInjector.ned";
-
 network ErdosRenyi
 {
     parameters:
@@ -18,9 +15,7 @@ network ErdosRenyi
         node[numNodes]: SCMNode {
             id = index;
             numUsers = default(intuniform(1,5));
-            x = uniform(0,800);
-            y = uniform(0,600);
-            @display("p=$x,$y;i=misc/node");
+            @display("i=misc/node");
         }
     
     connections allowunconnected:
