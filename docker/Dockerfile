@@ -36,6 +36,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 # Copy built artifacts and venv
 COPY --from=builder /workspace /workspace
 
+# Ensure scripts are executable
+RUN chmod +x /workspace/scripts/*.sh /workspace/docker/entrypoint.sh
+
 # Set working directory
 WORKDIR /workspace/omnetpp/simulations
 
