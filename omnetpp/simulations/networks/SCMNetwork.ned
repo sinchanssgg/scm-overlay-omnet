@@ -4,7 +4,7 @@ network SCMNetwork
     parameters:
         int numNodes @default(10);
         double faultProbability @default(0.1);
-        double faultInterval @default(10s);
+        double faultInterval @unit(s) @default(10s);
         
         @display("bgb=800,600");
     
