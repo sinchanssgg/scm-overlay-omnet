@@ -1,15 +1,20 @@
 #!/bin/bash
 set -e
 
-# Initialize results directory
-mkdir -p /workspace/results
+RESULTS_BASE=/workspace/results
+mkdir -p "$RESULTS_BASE"
 
-# Run experiments
+# Run experiments — each config writes to its own subdirectory
 cd /workspace/omnetpp/simulations
 for config in BaselineCBT FaultDistance BaselineER FaultBeta; do
-    ./scm-simulations -u Cmdenv -c $config -n ../networks \
-        --result-dir=/workspace/results/$config
+    echo "=== Running $config ==="
+    mkdir -p "$RESULTS_BASE/$config"
+    ./scm-simulations -u Cmdenv -c "$config" -n ../networks \
+        --result-dir="$RESULTS_BASE/$config"
 done
 
-# Create latest symlink
-ln -sfn $(date +%Y%m%d_%H%M%S) /workspace/results/latest
+# Create latest symlink pointing to the results root
+# (all scenario subdirectories live directly under $RESULTS_BASE)
+ln -sfn "$RESULTS_BASE" /workspace/results/latest
+
+echo "=== All simulations complete ==="
