@@ -3,23 +3,27 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
-#include "openssl/ec.h"
-#include "openssl/ecdsa.h"
-#include "openssl/obj_mac.h"
-#include "openssl/sha.h"
+#include <sstream>
+#include <openssl/ec.h>
+#include <openssl/ecdsa.h>
+#include <openssl/obj_mac.h>
+#include <openssl/sha.h>
+#include <openssl/bn.h>
 
 Define_Module(SCMNode);
 
-// Constructor: Initialize crypto context
-SCMNode::SCMNode() {
+// ─── Constructor / Destructor ───────────────────────────────────────
+
+SCMNode::SCMNode() : eckey(nullptr) {
     eckey = EC_KEY_new_by_curve_name(NID_secp256k1);
     EC_KEY_generate_key(eckey);
 }
 
-// Destructor: Clean up crypto context
 SCMNode::~SCMNode() {
-    EC_KEY_free(eckey);
+    if (eckey) EC_KEY_free(eckey);
 }
+
+// ─── OMNeT++ lifecycle ──────────────────────────────────────────────
 
 void SCMNode::initialize()
 {
@@ -28,24 +32,29 @@ void SCMNode::initialize()
     WATCH(beta);
     WATCH(payment);
     WATCH(subtreeSize);
-    
-    // Initialize node parameters
+
+    // Read NED parameters
     id = par("id");
     numUsers = par("numUsers");
     linkCost = par("linkCost");
-    
-    // Initialize crypto and proof variables
-    sizeSig = nullptr;
-    betaSig = nullptr;
-    proof = nullptr;
-    
+
+    // Register signal for stabilization metrics
+    stabilizationTimeSignal = registerSignal("nodeStableTime");
+    lastFaultTime = 0;
+
+    // Clear crypto state
+    sizeSig.clear();
+    betaSig.clear();
+    proof.clear();
+
     // Rule 1: Root initialization
-    if (id == 0) { // Node 0 is the root
+    if (id == 0) {
         parentId = -1;
         level = 0;
         status = STABLE;
         payment = 0;
         beta = 0;
+        subtreeSize = numUsers;
         calculateAlpha();
         bubble("ROOT INITIALIZED");
     } else {
@@ -57,7 +66,7 @@ void SCMNode::initialize()
         payment = 0;
         subtreeSize = 0;
     }
-    
+
     // Schedule first stabilization check
     scheduleAt(simTime() + uniform(0, 0.1), new cMessage("Stabilize"));
 }
@@ -66,16 +75,15 @@ void SCMNode::handleMessage(cMessage *msg)
 {
     if (msg->isSelfMessage()) {
         handleStabilization();
-        scheduleAt(simTime() + 1.0, msg); // Check every 1 second
+        scheduleAt(simTime() + 1.0, msg);
         return;
     }
 
-    // Track stable time for metrics
+    // Track stabilization time for metrics
     if (status == STABLE) {
-        simsignal_t sig = registerSignal("nodeStableTime");
-        emit(sig, simTime() - lastFaultTime);
+        emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
     }
-    
+
     SCMControlMessage *ctrlMsg = dynamic_cast<SCMControlMessage*>(msg);
     if (ctrlMsg) {
         switch (ctrlMsg->getMsgType()) {
@@ -99,6 +107,24 @@ void SCMNode::handleMessage(cMessage *msg)
     delete msg;
 }
 
+void SCMNode::refreshDisplay() const
+{
+    char buf[64];
+    snprintf(buf, sizeof(buf), "L%d %s β=%.2f",
+             level,
+             status == STABLE ? "S" : (status == FAULTY ? "F" : "R"),
+             beta);
+    getDisplayString().setTagArg("t", 0, buf);
+
+    // Color by status: green=STABLE, red=FAULTY, yellow=RECOVERING
+    const char *color = (status == STABLE) ? "green"
+                      : (status == FAULTY) ? "red"
+                      : "yellow";
+    getDisplayString().setTagArg("i2", 0, color);
+}
+
+// ─── Stabilization rules ────────────────────────────────────────────
+
 void SCMNode::handleStabilization()
 {
     // --- Recovery Phase ---
@@ -107,137 +133,392 @@ void SCMNode::handleStabilization()
         int oldParent = parentId;
         parentId = findBestParent();
         if (parentId != oldParent) {
-            level = getParentNode()->level + 1;
-            sizeSig = nullptr;  // Invalidate signatures on parent change
-            betaSig = nullptr;
+            SCMNode *p = getParentNode();
+            if (p) level = p->level + 1;
+            sizeSig.clear();
+            betaSig.clear();
             calculateAlpha();
             calculateBeta();
             bubble("FOUND BETTER PARENT");
         }
     }
-    
+
     // Rule 3: Error Propagation (Become FAULTY if inconsistent)
     if (status == STABLE && (notLocallyConsistent() || lostStableSupport())) {
         status = FAULTY;
-        sizeSig = nullptr;
-        betaSig = nullptr;
+        lastFaultTime = simTime().dbl();
+        sizeSig.clear();
+        betaSig.clear();
         bubble("DETECTED INCONSISTENCY");
         notifyChildren(SCMControlMessage::FAULT_NOTIFY);
         return;
     }
-    
+
     // Rule 4: Start Recovery (Become RECOVERING when children are ready)
     if (status == FAULTY && allChildrenRecovering()) {
         status = RECOVERING;
-        calculateAlpha();  // Recalculate based on children's state
+        calculateAlpha();
         bubble("STARTING RECOVERY");
         return;
     }
-    
+
     // Rule 5: Rejoin Tree (Find stable parent and become STABLE)
     if (status == RECOVERING || status == FAULTY) {
         if (rejoinTree()) {
-            // Successfully rejoined - now proceed to state publication
             status = STABLE;
             calculateAlpha();
             calculateBeta();
             payment = beta * numUsers;
+            emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
             bubble("REJOINED TREE");
         }
         return;
     }
-    
+
     // --- State Publication Phase ---
-    // Rule 6: Sign and Publish State (Create cryptographic signatures)
-    if (status == STABLE && (sizeSig == nullptr || betaSig == nullptr)) {
+    // Rule 6: Sign and Publish State
+    if (status == STABLE && (sizeSig.empty() || betaSig.empty())) {
         signState();
         bubble("STATE SIGNED");
     }
-    
+
     // --- Proof Propagation Phase ---
-    // Rule 7: Propagate Proof (Build proof when children have proofs)
+    // Rule 7: Propagate Proof
     if (status == STABLE && allChildrenHaveProofs()) {
         buildProof();
-        if (id == 0) { // Root initiates audit
+        if (id == 0) {
             verifyProofChain();
         }
         bubble("PROPAGATING PROOF");
     }
 }
 
+// ─── Consistency checks ─────────────────────────────────────────────
+
+bool SCMNode::notLocallyConsistent()
+{
+    if (parentId == -1) return false;  // Root is always consistent
+
+    SCMNode *parent = getParentNode();
+    if (!parent) return true;  // Parent gone = inconsistent
+
+    // Definition 2: level must be parent's level + 1
+    if (level != parent->level + 1) return true;
+
+    // Beta must match: parent_beta + linkCost / subtreeSize
+    if (subtreeSize > 0) {
+        double expectedBeta = parent->beta + (linkCost / subtreeSize);
+        if (fabs(beta - expectedBeta) > 1e-6) return true;
+    }
+
+    return false;
+}
+
+bool SCMNode::lostStableSupport()
+{
+    if (parentId == -1) return false;  // Root has no parent
+
+    SCMNode *parent = getParentNode();
+    if (!parent) return true;  // Parent unreachable
+
+    return parent->status != STABLE;
+}
+
+bool SCMNode::allChildrenRecovering()
+{
+    std::vector<SCMNode*> children = getChildrenNodes();
+    for (SCMNode *child : children) {
+        if (child->status != RECOVERING && child->status != STABLE) {
+            return false;
+        }
+    }
+    return true;  // True even if no children
+}
+
+bool SCMNode::allChildrenHaveProofs()
+{
+    std::vector<SCMNode*> children = getChildrenNodes();
+    for (SCMNode *child : children) {
+        if (child->status == STABLE && child->proof.empty()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SCMNode::existsBetterParent()
+{
+    if (parentId == -1) return false;  // Root
+
+    int bestId = findBestParent();
+    if (bestId == -1) return false;
+
+    SCMNode *best = getNodeById(bestId);
+    SCMNode *current = getParentNode();
+
+    if (!current) return (best != nullptr);
+    if (!best) return false;
+
+    return best->level < current->level;
+}
+
+int SCMNode::findBestParent()
+{
+    int bestLevel = INT_MAX;
+    int bestId = -1;
+
+    // Iterate over all connected neighbours via gates
+    for (int i = 0; i < gateSize("port$o"); i++) {
+        cGate *gate = gate("port$o", i);
+        if (!gate->isConnected()) continue;
+
+        cModule *neighbor = gate->getNextGate()->getOwnerModule();
+        SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
+        if (!nNode) continue;
+
+        if (nNode->status == STABLE && nNode->level < bestLevel && nNode->id != id) {
+            bestLevel = nNode->level;
+            bestId = nNode->id;
+        }
+    }
+    return bestId;
+}
+
+// ─── Tree operations ────────────────────────────────────────────────
+
 bool SCMNode::rejoinTree()
 {
     int newParentId = findBestParent();
-    if (newParentId != -1) {
-        SCMNode *parent = getParentNode();
-        if (parent && parent->status == STABLE) {
-            parentId = newParentId;
-            level = parent->level + 1;
-            return true;
-        }
+    if (newParentId == -1) return false;
+
+    SCMNode *newParent = getNodeById(newParentId);
+    if (newParent && newParent->status == STABLE) {
+        parentId = newParentId;
+        level = newParent->level + 1;
+        return true;
     }
     return false;
 }
 
+void SCMNode::notifyChildren(SCMControlMessage::MsgType msgType)
+{
+    for (int i = 0; i < gateSize("port$o"); i++) {
+        cGate *gate = gate("port$o", i);
+        if (!gate->isConnected()) continue;
+
+        cModule *neighbor = gate->getNextGate()->getOwnerModule();
+        SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
+        if (nNode && nNode->parentId == id) {
+            SCMControlMessage *msg = new SCMControlMessage("Notify");
+            msg->setMsgType(msgType);
+            msg->setSenderId(id);
+            send(msg, "port$o", i);
+        }
+    }
+}
+
+// ─── Cost calculations ──────────────────────────────────────────────
+
+void SCMNode::calculateAlpha()
+{
+    // Alpha = total users in subtree (this node + children subtrees)
+    subtreeSize = numUsers;
+    for (SCMNode *child : getChildrenNodes()) {
+        subtreeSize += child->subtreeSize;
+    }
+}
+
+void SCMNode::calculateBeta()
+{
+    // Beta = parent's beta + linkCost / subtreeSize
+    if (parentId == -1) {
+        beta = 0;  // Root pays nothing upstream
+        return;
+    }
+
+    SCMNode *parent = getParentNode();
+    if (parent && subtreeSize > 0) {
+        beta = parent->beta + (linkCost / subtreeSize);
+    }
+    payment = beta * numUsers;
+}
+
+double SCMNode::calculateMaxGain()
+{
+    double maxGain = linkCost;
+    for (SCMNode *child : getChildrenNodes()) {
+        maxGain += child->calculateMaxGain();
+    }
+    return maxGain;
+}
+
+// ─── Message handlers ───────────────────────────────────────────────
+
+void SCMNode::handleAlphaUpdate(SCMControlMessage* msg)
+{
+    // Parent informs us of updated subtree size
+    int senderSubtreeSize = (int)msg->getValue();
+    calculateAlpha();
+    calculateBeta();
+}
+
+void SCMNode::handleBetaUpdate(SCMControlMessage* msg)
+{
+    // Parent informs us of new beta; recalculate ours
+    calculateBeta();
+    payment = beta * numUsers;
+}
+
+void SCMNode::handleFaultNotification(SCMControlMessage* msg)
+{
+    if (status == STABLE) {
+        status = FAULTY;
+        lastFaultTime = simTime().dbl();
+        sizeSig.clear();
+        betaSig.clear();
+        bubble("FAULT RECEIVED");
+        notifyChildren(SCMControlMessage::FAULT_NOTIFY);
+    }
+}
+
+void SCMNode::handleProofRequest(SCMControlMessage* msg)
+{
+    // Respond with our current proof
+    SCMControlMessage *resp = new SCMControlMessage("ProofResponse");
+    resp->setMsgType(SCMControlMessage::PROOF_RESPONSE);
+    resp->setSenderId(id);
+    // In a full implementation, attach serialized proof data.
+    // For now, respond with proof availability indicator.
+    resp->setValue(proof.empty() ? 0.0 : 1.0);
+
+    // Send back to requester via direct message
+    cModule *requester = getNodeById(msg->getSenderId());
+    if (requester) {
+        sendDirect(resp, requester, "port$i", 0);
+    } else {
+        delete resp;
+    }
+}
+
+void SCMNode::handleProofResponse(SCMControlMessage* msg)
+{
+    // Received proof from child — used during proof propagation phase
+    // The actual proof verification is done in verifyProofChain()
+    EV << "Node " << id << " received proof response from node " << msg->getSenderId() << endl;
+}
+
+// ─── Cryptographic operations ───────────────────────────────────────
+
 void SCMNode::signState()
 {
-    // Sign subtree size
     std::string sizeStr = std::to_string(subtreeSize);
     sizeSig = signMessage(sizeStr);
-    
-    // Sign beta value
+
     std::string betaStr = std::to_string(beta);
     betaSig = signMessage(betaStr);
 }
 
+std::vector<uint8_t> SCMNode::signMessage(const std::string& message)
+{
+    // SHA-256 hash of message
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(message.c_str()),
+           message.size(), hash);
+
+    // ECDSA sign
+    unsigned int sigLen = ECDSA_size(eckey);
+    std::vector<uint8_t> sig(sigLen);
+    if (ECDSA_sign(0, hash, SHA256_DIGEST_LENGTH, sig.data(), &sigLen, eckey) != 1) {
+        EV_WARN << "Node " << id << ": ECDSA_sign failed" << endl;
+        return {};
+    }
+    sig.resize(sigLen);
+    return sig;
+}
+
+bool SCMNode::verifySignature(const std::string& message,
+                              const std::vector<uint8_t>& signature,
+                              EC_KEY* key)
+{
+    if (signature.empty() || !key) return false;
+
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256(reinterpret_cast<const unsigned char*>(message.c_str()),
+           message.size(), hash);
+
+    return ECDSA_verify(0, hash, SHA256_DIGEST_LENGTH,
+                        signature.data(), (int)signature.size(), key) == 1;
+}
+
+std::string SCMNode::serializeProof(const ProofStruct& proofData)
+{
+    std::ostringstream oss;
+    oss << proofData.nodeId << ":"
+        << proofData.numUsers << ":"
+        << proofData.subtreeSize << ":"
+        << proofData.betaValue << ":"
+        << proofData.payment;
+    return oss.str();
+}
+
+ProofStruct SCMNode::deserializeProof(const std::string& proofStr)
+{
+    ProofStruct p;
+    std::istringstream iss(proofStr);
+    char sep;
+    iss >> p.nodeId >> sep
+        >> p.numUsers >> sep
+        >> p.subtreeSize >> sep
+        >> p.betaValue >> sep
+        >> p.payment;
+    return p;
+}
+
+// ─── Proof propagation ──────────────────────────────────────────────
+
 void SCMNode::buildProof()
 {
-    // Create proof structure according to Algorithm 2, Rule 7
     ProofStruct proofData;
     proofData.nodeId = id;
     proofData.numUsers = numUsers;
     proofData.subtreeSize = subtreeSize;
     proofData.betaValue = beta;
     proofData.payment = payment;
-    
+
     // Add parent's beta signature
     if (parentId != -1) {
         SCMNode *parent = getParentNode();
-        proofData.parentBetaSig = parent->betaSig;
+        if (parent) proofData.parentBetaSig = parent->betaSig;
     }
-    
-    // Collect children's size signatures
+
+    // Collect children's size signatures and proofs
     for (SCMNode *child : getChildrenNodes()) {
         if (child->status == STABLE) {
             proofData.childrenSigs.push_back(child->sizeSig);
+            if (!child->proof.empty()) {
+                proofData.childProofs.push_back(child->proof);
+            }
         }
     }
-    
+
     // Sign the complete proof structure
     std::string proofStr = serializeProof(proofData);
     proof = signMessage(proofStr);
-    
-    // Append children's proofs (building the chain)
-    for (SCMNode *child : getChildrenNodes()) {
-        if (child->proof != nullptr) {
-            proofData.childProofs.push_back(child->proof);
-        }
-    }
 }
 
 void SCMNode::verifyProofChain()
 {
-    if (id != 0) return; // Only root verifies
-    
+    if (id != 0) return;
+
     bool verificationPassed = true;
-    
+
     for (SCMNode *child : getChildrenNodes()) {
         if (!verifyNodeProof(child)) {
             verificationPassed = false;
             handleCheatingNode(child->id);
         }
     }
-    
+
     if (verificationPassed) {
         bubble("PROOF VERIFICATION SUCCESSFUL");
     } else {
@@ -247,27 +528,28 @@ void SCMNode::verifyProofChain()
 
 bool SCMNode::verifyNodeProof(SCMNode *node)
 {
-    // Verify the cryptographic proof for a specific node
     // 1. Verify node's own signatures
     std::string sizeStr = std::to_string(node->subtreeSize);
     if (!verifySignature(sizeStr, node->sizeSig, node->eckey)) {
         return false;
     }
-    
+
     std::string betaStr = std::to_string(node->beta);
     if (!verifySignature(betaStr, node->betaSig, node->eckey)) {
         return false;
     }
-    
-    // 2. Verify parent-child relationship consistency
+
+    // 2. Verify parent-child beta consistency
     if (node->parentId != -1) {
         SCMNode *parent = node->getParentNode();
-        double expectedBeta = parent->beta + (node->linkCost / node->subtreeSize);
-        if (fabs(node->beta - expectedBeta) > 1e-6) {
-            return false;
+        if (parent && node->subtreeSize > 0) {
+            double expectedBeta = parent->beta + (node->linkCost / node->subtreeSize);
+            if (fabs(node->beta - expectedBeta) > 1e-6) {
+                return false;
+            }
         }
     }
-    
+
     // 3. Verify subtree size consistency
     int calculatedSize = node->numUsers;
     for (SCMNode *child : node->getChildrenNodes()) {
@@ -276,32 +558,55 @@ bool SCMNode::verifyNodeProof(SCMNode *node)
     if (calculatedSize != node->subtreeSize) {
         return false;
     }
-    
+
     return true;
 }
 
 void SCMNode::handleCheatingNode(int cheatingNodeId)
 {
-    // Implement punishment mechanism
-    // 1. Impose financial penalty
     SCMNode *cheater = getNodeById(cheatingNodeId);
+    if (!cheater) return;
+
+    // Impose financial penalty
     cheater->payment += 2 * cheater->calculateMaxGain();
-    
-    // 2. Optionally isolate node or trigger recovery
+
+    // Mark as faulty and invalidate crypto state
     cheater->status = FAULTY;
-    cheater->sizeSig = nullptr;
-    cheater->betaSig = nullptr;
-    cheater->proof = nullptr;
-    
+    cheater->sizeSig.clear();
+    cheater->betaSig.clear();
+    cheater->proof.clear();
+
     bubble(("PUNISHING CHEATING NODE " + std::to_string(cheatingNodeId)).c_str());
 }
 
-double SCMNode::calculateMaxGain()
+// ─── Utility: node lookups ──────────────────────────────────────────
+
+SCMNode* SCMNode::getParentNode()
 {
-    // Calculate G_max^u = sum of costs in subtree
-    double maxGain = linkCost;
-    for (SCMNode *child : getChildrenNodes()) {
-        maxGain += child->calculateMaxGain();
+    if (parentId == -1) return nullptr;
+    return getNodeById(parentId);
+}
+
+std::vector<SCMNode*> SCMNode::getChildrenNodes()
+{
+    std::vector<SCMNode*> children;
+    // Children are connected neighbours whose parentId == our id
+    for (int i = 0; i < gateSize("port$o"); i++) {
+        cGate *g = gate("port$o", i);
+        if (!g->isConnected()) continue;
+
+        cModule *neighbor = g->getNextGate()->getOwnerModule();
+        SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
+        if (nNode && nNode->parentId == id) {
+            children.push_back(nNode);
+        }
     }
-    return maxGain;
+    return children;
+}
+
+SCMNode* SCMNode::getNodeById(int nodeId)
+{
+    cModule *network = getParentModule();
+    cModule *mod = network->getSubmodule("node", nodeId);
+    return dynamic_cast<SCMNode*>(mod);
 }
