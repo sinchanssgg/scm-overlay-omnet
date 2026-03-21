@@ -270,3 +270,17 @@ omnetpp-6.0.1-linux-x86_64.tgz
 *.tgz
 omnetpp-6.0.1-linux-x86_64.tgz
 *.tgz
+
+# Project-local generated artifacts
+/results/
+/omnetpp/simulations/scm-simulations
+/omnetpp/simulations/*.o
+
+# Local IDE workspace settings
+/.vscode/
+
+# OMNeT++ local build outputs
+/omnetpp-6.0.1/Makefile.inc
+/omnetpp-6.0.1/config.log
+/omnetpp-6.0.1/bin/
+/omnetpp-6.0.1/lib/

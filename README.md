@@ -2,30 +2,76 @@
 
 OMNeT++ implementation of the self-stabilizing multicast overlay algorithm from:
 
-> "On Self-stabilizing Sharing of Multicast Transmission in Overlays"  
-> [Full Paper Reference]
+> "On Self-stabilizing Sharing of Multicast Transmission in Overlays"
 
-## Features
+This repository currently contains:
+- A custom SCM simulation project under `omnetpp/simulations`
+- Data preprocessing, analysis, and visualization scripts under `scripts/`
+- A vendored OMNeT++ source tree under `omnetpp-6.0.1`
+- Docker assets for reproducible execution under `docker/`
 
-- Implementation of the SCM algorithm with all 5 rules
-- Support for multiple network topologies:
-  - Complete Binary Trees (CBT)
-  - Erdős-Rényi (ER) graphs
-  - Twitch social network
-- Fault injection mechanisms
-- Docker support for reproducible experiments
+## Documentation Map
 
-## Getting Started
+- Setup and dependencies: `docs/setup.md`
+- Architecture and design walkthrough: `docs/design.md`
+- Verified current-state audit and known blockers: `docs/current-state.md`
 
-### Prerequisites
+## Features (Target Design)
 
-- OMNeT++ 6.x
-- Python 3.8+
-- Docker gi 
+- SCM stabilization logic across seven protocol rules
+- Multiple topology modes:
+  - Complete Binary Tree (CBT)
+  - Erdos-Renyi (ER)
+  - Twitch-derived graph
+- Fault injection scenarios
+- Result processing and metric plotting pipeline
+- Dockerized execution path
 
-### Installation
+## Current Status
+
+The project structure and intent are clear, but there are known wiring/build gaps in the current codebase.
+
+Before expecting full end-to-end runs, read:
+- `docs/current-state.md`
+
+## Quick Start Paths
+
+### Path A: Docker-first
+
+Use this if you want a controlled environment for dependencies.
 
 ```bash
-git clone https://github.com/yourusername/scm-overlay-omnet.git
-cd scm-overlay-omnet/omnetpp/simulations
-make
+cd docker
+docker compose up --build
+```
+
+### Path B: Native OMNeT++ build
+
+Use this if you want direct local development in OMNeT++.
+
+```bash
+cd omnetpp-6.0.1
+source setenv
+./configure
+make -j$(nproc)
+```
+
+Then build and run simulations from `omnetpp/simulations` after applying the fixes listed in `docs/current-state.md`.
+
+## Repository Layout
+
+```text
+docker/                  # Container build and compose orchestration
+docs/                    # Project docs (setup, design, status)
+omnetpp/simulations/     # SCM simulation model, NED files, ini configs
+omnetpp-6.0.1/           # Vendored OMNeT++ source distribution
+scripts/preprocess/      # Topology/data preprocessing
+scripts/analysis/        # Result aggregation
+scripts/visualization/   # Plot generation
+tests/                   # Unit/integration placeholders
+```
+
+## Notes
+
+- `requirements.txt` is currently empty; Python dependencies are documented in `docs/setup.md`.
+- `docs/results/` is reserved for result-oriented documentation artifacts.
