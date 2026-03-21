@@ -58,6 +58,37 @@ make -j$(nproc)
 
 Then build and run simulations from `omnetpp/simulations` after applying the fixes listed in `docs/current-state.md`.
 
+### Path C: Fast Local Pipeline (No Docker Rebuild)
+
+Use this for day-to-day debugging.
+
+Quick smoke test without Docker (single scenario):
+
+```bash
+./scripts/run_experiments.sh --quick
+```
+
+Full local pipeline (all configured scenarios):
+
+```bash
+./scripts/run_experiments.sh
+```
+
+Optional:
+
+```bash
+./scripts/run_experiments.sh --skip-sim-build
+RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
+```
+
+Notes:
+- `run_experiments.sh` now bootstraps OMNeT++ environment automatically, so you do not need to manually run `source third_party/omnetpp/setenv` first.
+- On first local run it auto-creates `third_party/omnetpp/configure.user` from `configure.user.dist` if missing.
+- If `results/` is not writable (for example after Docker runs as root), it falls back to `$HOME/.local/state/scm-overlay-omnet/results/...`.
+
+Notes:
+- Keep Docker for final reproducibility checks, and use the local pipeline for rapid iteration.
+
 ## Repository Layout
 
 ```text
@@ -73,6 +104,6 @@ tests/                   # Unit/integration placeholders
 
 ## Notes
 
-- `requirements.txt` is currently empty; Python dependencies are documented in `docs/setup.md`.
+- Python dependencies are managed via `uv` and pinned in `uv.lock`. Run `uv sync` to install.
 - `docs/results/` is reserved for result-oriented documentation artifacts.
 - Run `scripts/check_omnetpp_version.sh` to compare your pinned submodule version against latest upstream tags.

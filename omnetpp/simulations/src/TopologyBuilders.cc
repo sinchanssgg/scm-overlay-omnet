@@ -2,6 +2,7 @@
 #include <sstream>
 #include <omnetpp.h>
 #include <cmath>
+#define OPENSSL_SUPPRESS_DEPRECATED
 #include <openssl/rand.h>
 #include "SCMNode.h"
 
@@ -39,13 +40,8 @@ class CBTBuilder : public cModule {
         node->par("id") = idx;
         node->par("numUsers") = (int)uniform(1, 5);  // Random users per node
         node->par("linkCost") = (double)uniform(1, 10); // Random link cost
-        
-        // Root node specific initialization
-        if (idx == 0) {
-            node->par("isRoot") = true;
-        }
     }
-    
+
     void connectNodes(cModule *network, int src, int dest) {
         cModule *srcMod = network->getSubmodule("node", src);
         cModule *destMod = network->getSubmodule("node", dest);
@@ -119,17 +115,12 @@ class ERBuilder : public cModule {
         node->par("id") = idx;
         node->par("numUsers") = (int)uniform(1, 5);  // Random users per node
         node->par("linkCost") = (double)uniform(1, 10); // Random link cost
-        
-        // Designate node 0 as root
-        if (idx == 0) {
-            node->par("isRoot") = true;
-        }
     }
-    
+
     void connectNodes(cModule *network, int src, int dest) {
         cModule *srcMod = network->getSubmodule("node", src);
         cModule *destMod = network->getSubmodule("node", dest);
-        
+
         if (!srcMod || !destMod) return;
         
         // Check if connection already exists to avoid duplicates
@@ -220,13 +211,8 @@ class TwitchBuilder : public cModule {
         node->par("id") = idx;
         node->par("numUsers") = (int)uniform(1, 5);  // Random users per node
         node->par("linkCost") = (double)uniform(1, 10); // Random link cost
-        
-        // Designate specified node as root
-        if (idx == rootId) {
-            node->par("isRoot") = true;
-        }
     }
-    
+
     void connectNodes(cModule *network, int src, int dest) {
         // Same implementation as ERBuilder::connectNodes
         cModule *srcMod = network->getSubmodule("node", src);

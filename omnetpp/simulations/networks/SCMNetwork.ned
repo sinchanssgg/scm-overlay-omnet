@@ -1,29 +1,23 @@
-package overlay;
-
-import "SCMNode.ned";
-import "SCMFaultInjector.ned";
 
 network SCMNetwork
 {
     parameters:
         int numNodes @default(10);
         double faultProbability @default(0.1);
-        double faultInterval @default(10s);
+        double faultInterval @unit(s) @default(10s);
         
         @display("bgb=800,600");
     
     submodules:
         faultInjector: SCMFaultInjector {
-            faultProbability = faultProbability;
-            interval = faultInterval;
+            faultProbability = parent.faultProbability;
+            interval = parent.faultInterval;
         }
         
         node[numNodes]: SCMNode {
             id = index;
             numUsers = default(intuniform(1,5));
-            x = uniform(0,800);
-            y = uniform(0,600);
-            @display("p=$x,$y;i=misc/node");
+            @display("i=misc/node");
         }
     
     connections allowunconnected:

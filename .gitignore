@@ -241,6 +241,8 @@ __marimo__/
 *.lastbuildstate
 *.cache
 *.autosave
+omnetpp/simulations/out/
+omnetpp/simulations/scm-simulations
 
 # Python
 __pycache__/

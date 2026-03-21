@@ -1,7 +1,3 @@
-package overlay;
-
-import "SCMNode.ned";
-import "SCMFaultInjector.ned";
 
 network TwitchNetwork
 {

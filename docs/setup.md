@@ -42,16 +42,24 @@ sudo apt-get install libssl-dev
 
 ### 2.2 Python Dependencies
 
-Repository scripts import:
-- `pandas`
-- `numpy`
-- `matplotlib`
-- `seaborn`
+Managed via [uv](https://docs.astral.sh/uv/). Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`.
 
-Install:
+Install uv (if not already installed):
 
 ```bash
-python3 -m pip install --user --upgrade pandas numpy matplotlib seaborn
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Install dependencies:
+
+```bash
+uv sync
+```
+
+Run any Python script through the managed environment:
+
+```bash
+uv run python scripts/analysis/process_results.py results/latest
 ```
 
 ## 3. Native OMNeT++ Setup
