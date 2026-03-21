@@ -7,8 +7,8 @@ mkdir -p "$RESULT_DIR"
 echo "Running experiments, results will be saved to $RESULT_DIR"
 
 # Generate topology files
-python3 scripts/preprocess/generate_cbt.py --depth 5 --output "$RESULT_DIR/cbt_edges.txt"
-python3 scripts/preprocess/generate_er.py --nodes 50 --prob 0.2 --output "$RESULT_DIR/er_edges.txt"
+uv run python scripts/preprocess/generate_cbt.py --depth 5 --output "$RESULT_DIR/cbt_edges.txt"
+uv run python scripts/preprocess/generate_er.py --nodes 50 --prob 0.2 --output "$RESULT_DIR/er_edges.txt"
 
 # Run simulations
 cd omnetpp/simulations
@@ -20,10 +20,10 @@ done
 
 # Process results
 cd ../../scripts/analysis
-python3 process_results.py "../$RESULT_DIR"
+uv run python process_results.py "../$RESULT_DIR"
 
 # Generate visualizations
 cd ../visualization
-python3 plot_metrics.py "../$RESULT_DIR"
+uv run python plot_metrics.py "../$RESULT_DIR"
 
 echo "Experiment pipeline completed"

@@ -73,6 +73,6 @@ tests/                   # Unit/integration placeholders
 
 ## Notes
 
-- `requirements.txt` is currently empty; Python dependencies are documented in `docs/setup.md`.
+- Python dependencies are managed via `uv` and pinned in `uv.lock`. Run `uv sync` to install.
 - `docs/results/` is reserved for result-oriented documentation artifacts.
 - Run `scripts/check_omnetpp_version.sh` to compare your pinned submodule version against latest upstream tags.

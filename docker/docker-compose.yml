@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   simulation:
-    build: 
+    build:
       context: ..
       dockerfile: docker/Dockerfile
     volumes:
@@ -11,25 +9,29 @@ services:
     environment:
       - OMNETPP_IMAGE_VERSION=6.0.1
 
-  visualization:
-    image: python:3.8-slim
-    working_dir: /workspace
-    volumes:
-      - ../results:/workspace/results
-      - ../scripts:/workspace/scripts
-    depends_on:
-      - simulation
-    command: ["python3", "scripts/visualization/plot_metrics.py", "results/latest"]
-
   analysis:
-    image: python:3.8-slim
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     working_dir: /workspace
     volumes:
       - ../results:/workspace/results
-      - ../scripts:/workspace/scripts
     depends_on:
-      - simulation
-    command: ["python3", "scripts/analysis/process_results.py", "results/latest"]
+      simulation:
+        condition: service_completed_successfully
+    command: ["uv", "run", "python", "scripts/analysis/process_results.py", "results/latest"]
+
+  visualization:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    working_dir: /workspace
+    volumes:
+      - ../results:/workspace/results
+    depends_on:
+      analysis:
+        condition: service_completed_successfully
+    command: ["uv", "run", "python", "scripts/visualization/plot_metrics.py", "results/latest"]
 
 volumes:
   results:

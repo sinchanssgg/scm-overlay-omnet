@@ -1,0 +1,11 @@
+[project]
+name = "scm-overlay-omnet"
+version = "0.1.0"
+description = "Self-stabilizing Multicast Overlay (SCM) simulation and analysis"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "seaborn>=0.13.2",
+]
