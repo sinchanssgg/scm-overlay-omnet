@@ -19,8 +19,10 @@ COPY . .
 # Install Python dependencies via uv
 RUN uv sync --frozen --no-dev
 
-# Build OMNeT++ project
-RUN cd omnetpp/simulations && \
+# Build OMNeT++ project (source setenv to get opp_* tools on PATH)
+SHELL ["/bin/bash", "-c"]
+RUN source /root/omnetpp/setenv && \
+    cd omnetpp/simulations && \
     opp_makemake -f --deep -o scm-simulations && \
     make -j$(nproc)
 
