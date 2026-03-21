@@ -10,8 +10,8 @@ network SCMNetwork
     
     submodules:
         faultInjector: SCMFaultInjector {
-            faultProbability = faultProbability;
-            interval = faultInterval;
+            faultProbability = parent.faultProbability;
+            interval = parent.faultInterval;
         }
         
         node[numNodes]: SCMNode {
