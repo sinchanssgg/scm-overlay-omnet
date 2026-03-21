@@ -9,29 +9,5 @@ services:
     environment:
       - OMNETPP_IMAGE_VERSION=6.0
 
-  analysis:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    working_dir: /workspace
-    volumes:
-      - ../results:/workspace/results
-    depends_on:
-      simulation:
-        condition: service_completed_successfully
-    command: ["uv", "run", "python", "scripts/analysis/process_results.py", "results/latest"]
-
-  visualization:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    working_dir: /workspace
-    volumes:
-      - ../results:/workspace/results
-    depends_on:
-      analysis:
-        condition: service_completed_successfully
-    command: ["uv", "run", "python", "scripts/visualization/plot_metrics.py", "results/latest"]
-
 volumes:
   results:
