@@ -7,7 +7,7 @@ OMNeT++ implementation of the self-stabilizing multicast overlay algorithm from:
 This repository currently contains:
 - A custom SCM simulation project under `omnetpp/simulations`
 - Data preprocessing, analysis, and visualization scripts under `scripts/`
-- A vendored OMNeT++ source tree under `omnetpp-6.0.1`
+- An OMNeT++ upstream Git submodule under `third_party/omnetpp` (currently pinned to `omnetpp-6.3.0`)
 - Docker assets for reproducible execution under `docker/`
 
 ## Documentation Map
@@ -50,7 +50,7 @@ docker compose up --build
 Use this if you want direct local development in OMNeT++.
 
 ```bash
-cd omnetpp-6.0.1
+cd third_party/omnetpp
 source setenv
 ./configure
 make -j$(nproc)
@@ -64,7 +64,7 @@ Then build and run simulations from `omnetpp/simulations` after applying the fix
 docker/                  # Container build and compose orchestration
 docs/                    # Project docs (setup, design, status)
 omnetpp/simulations/     # SCM simulation model, NED files, ini configs
-omnetpp-6.0.1/           # Vendored OMNeT++ source distribution
+third_party/omnetpp/     # OMNeT++ upstream submodule (pinned version)
 scripts/preprocess/      # Topology/data preprocessing
 scripts/analysis/        # Result aggregation
 scripts/visualization/   # Plot generation
@@ -75,3 +75,4 @@ tests/                   # Unit/integration placeholders
 
 - `requirements.txt` is currently empty; Python dependencies are documented in `docs/setup.md`.
 - `docs/results/` is reserved for result-oriented documentation artifacts.
+- Run `scripts/check_omnetpp_version.sh` to compare your pinned submodule version against latest upstream tags.

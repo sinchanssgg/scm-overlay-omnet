@@ -6,7 +6,7 @@ This document explains how to prepare the environment for this repository and ho
 
 - `omnetpp/simulations`: SCM simulation code and NED network descriptions
 - `scripts/`: preprocessing, analysis, and visualization scripts
-- `omnetpp-6.0.1`: vendored OMNeT++ source distribution
+- `third_party/omnetpp`: upstream OMNeT++ submodule pinned for reproducibility
 - `docker/`: containerized build/run workflow
 
 ## 2. Dependency Overview
@@ -18,7 +18,7 @@ You need two dependency sets:
 
 ### 2.1 OMNeT++ Dependencies (Ubuntu)
 
-Based on OMNeT++ 6.0.1 install guide sources in this repository:
+Based on OMNeT++ install guide sources in the submodule (`third_party/omnetpp/doc/...`):
 
 ```bash
 sudo apt-get update
@@ -59,7 +59,7 @@ python3 -m pip install --user --upgrade pandas numpy matplotlib seaborn
 ### 3.1 Build OMNeT++
 
 ```bash
-cd omnetpp-6.0.1
+cd third_party/omnetpp
 source setenv
 ./configure
 make -j$(nproc)
@@ -120,3 +120,18 @@ The Twitch network mode expects an edge file path and large node count defaults;
 4. Build `omnetpp/simulations`
 5. Run one baseline scenario first (CBT or ER)
 6. Run full pipeline and confirm analysis/plot outputs
+
+## 8. Version Awareness (Pinned vs Latest)
+
+Use the helper script to check:
+
+```bash
+./scripts/check_omnetpp_version.sh
+```
+
+It reports:
+- current submodule commit
+- current tag (if exactly on a tag)
+- latest upstream `omnetpp-*` tag
+
+This keeps research runs reproducible while still monitoring new releases.

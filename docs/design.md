@@ -91,13 +91,13 @@ Intended flow:
 3. Export CSV summary
 4. Render summary plots
 
-## 6. Bundled OMNeT++ Distribution
+## 6. OMNeT++ Upstream Submodule
 
-Location: `omnetpp-6.0.1`
+Location: `third_party/omnetpp`
 
 Purpose:
-- Provides an in-repo, source-based OMNeT++ environment for reproducibility
-- Includes official install-guide sources under `doc/guides/_sources/installguide`
+- Uses upstream OMNeT++ directly while pinning a commit/tag for reproducibility
+- Keeps project ownership boundaries clear: SCM code here, OMNeT++ maintained upstream
 
 Expected bootstrap:
 

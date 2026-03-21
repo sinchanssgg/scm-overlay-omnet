@@ -5,8 +5,15 @@ This file captures the verified repository state as of the latest documentation 
 ## 1. What Is Working Structurally
 
 - Repository layout clearly separates simulation, preprocessing, orchestration, and analysis.
+- OMNeT++ dependency is now sourced from upstream via submodule at `third_party/omnetpp`.
 - Docker and native workflows are both represented.
 - Scenario naming and intent are visible in `omnetpp/simulations/omnetpp.ini`.
+
+### 1.1 Version Tracking Policy
+
+- Keep OMNeT++ pinned to a known tag/commit for reproducible runs.
+- Monitor upstream releases separately and upgrade intentionally.
+- Use `scripts/check_omnetpp_version.sh` for quick pinned-vs-latest visibility.
 
 ## 2. Blocking Gaps Before End-to-End Execution
 
