@@ -1,13 +1,13 @@
 services:
   simulation:
+    image: scm-overlay-omnet:local
     build:
       context: ..
       dockerfile: docker/Dockerfile
     volumes:
       - ../results:/workspace/results
-    command: ["/workspace/scripts/run_experiments.sh", "--skip-sim-build"]
     environment:
-      - OMNETPP_IMAGE_VERSION=6.0
-
+      - RESULT_DIR=/workspace/results/latest
+    command: ["/workspace/scripts/run_experiments.sh", "--skip-sim-build"]
 volumes:
   results:
