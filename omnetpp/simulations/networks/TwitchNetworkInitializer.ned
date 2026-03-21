@@ -1,4 +1,3 @@
-package overlay;
 
 simple TwitchNetworkInitializer {
     parameters:

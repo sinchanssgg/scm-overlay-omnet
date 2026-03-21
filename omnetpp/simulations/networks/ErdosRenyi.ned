@@ -1,4 +1,3 @@
-package overlay;
 
 network ErdosRenyi
 {
