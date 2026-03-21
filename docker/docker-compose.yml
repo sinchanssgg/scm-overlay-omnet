@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
     volumes:
       - ../results:/workspace/results
-    command: ["/workspace/scripts/run_experiments.sh"]
+    command: ["/workspace/scripts/run_experiments.sh", "--skip-sim-build"]
     environment:
       - OMNETPP_IMAGE_VERSION=6.0
 

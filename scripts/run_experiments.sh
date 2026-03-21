@@ -68,10 +68,15 @@ fi
 
 echo "Running experiments, results will be saved to $RESULT_DIR"
 
-export OMNETPP_ROOT="$PROJECT_ROOT/third_party/omnetpp"
-if [[ ! -f "$OMNETPP_ROOT/setenv" ]]; then
-    echo "ERROR: OMNeT++ not found at $OMNETPP_ROOT" >&2
-    echo "Run: git submodule update --init --recursive" >&2
+# Find OMNeT++ — Docker image has it at /root/omnetpp, native uses submodule
+if [[ -f "/root/omnetpp/setenv" ]]; then
+    export OMNETPP_ROOT="/root/omnetpp"
+elif [[ -f "$PROJECT_ROOT/third_party/omnetpp/setenv" ]]; then
+    export OMNETPP_ROOT="$PROJECT_ROOT/third_party/omnetpp"
+else
+    echo "ERROR: OMNeT++ not found" >&2
+    echo "Docker: expected /root/omnetpp" >&2
+    echo "Native: run 'git submodule update --init --recursive'" >&2
     exit 1
 fi
 
@@ -81,7 +86,6 @@ if [[ ! -f "$OMNETPP_ROOT/configure.user" ]]; then
 fi
 
 # OMNeT++ setenv references optional env vars that may be unset.
-# Disable nounset only while sourcing it, then restore strict mode.
 set +u
 # shellcheck disable=SC1090
 source "$OMNETPP_ROOT/setenv" -q
