@@ -68,7 +68,7 @@ fi
 
 echo "Running experiments, results will be saved to $RESULT_DIR"
 
-OMNETPP_ROOT="$PROJECT_ROOT/third_party/omnetpp"
+export OMNETPP_ROOT="$PROJECT_ROOT/third_party/omnetpp"
 if [[ ! -f "$OMNETPP_ROOT/setenv" ]]; then
     echo "ERROR: OMNeT++ not found at $OMNETPP_ROOT" >&2
     echo "Run: git submodule update --init --recursive" >&2
@@ -86,6 +86,7 @@ set +u
 # shellcheck disable=SC1090
 source "$OMNETPP_ROOT/setenv" -q
 set -u
+export OMNETPP_ROOT
 
 # Generate topology files
 uv run python "$SCRIPT_DIR/preprocess/generate_cbt.py" --depth 5 --output "$RESULT_DIR/cbt_edges.txt"
