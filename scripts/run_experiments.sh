@@ -97,7 +97,9 @@ SIM_DIR="$PROJECT_ROOT/omnetpp/simulations"
 
 if [[ "$SKIP_SIM_BUILD" -eq 0 ]]; then
     echo "Building simulation binary..."
-    (cd "$SIM_DIR" && make)
+    (cd "$SIM_DIR" && \
+     opp_makemake -f --deep -o scm-simulations -I/usr/include -lssl -lcrypto && \
+     make -j"$(nproc)")
 fi
 
 cd "$SIM_DIR"
