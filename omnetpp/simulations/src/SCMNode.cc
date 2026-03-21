@@ -4,11 +4,14 @@
 #include <climits>
 #include <cmath>
 #include <sstream>
+#define OPENSSL_SUPPRESS_DEPRECATED
 #include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/obj_mac.h>
 #include <openssl/sha.h>
 #include <openssl/bn.h>
+
+using namespace omnetpp;
 
 Define_Module(SCMNode);
 
@@ -269,10 +272,10 @@ int SCMNode::findBestParent()
 
     // Iterate over all connected neighbours via gates
     for (int i = 0; i < gateSize("port$o"); i++) {
-        cGate *gate = gate("port$o", i);
-        if (!gate->isConnected()) continue;
+        cGate *g = gate("port$o", i);
+        if (!g->isConnected()) continue;
 
-        cModule *neighbor = gate->getNextGate()->getOwnerModule();
+        cModule *neighbor = g->getNextGate()->getOwnerModule();
         SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
         if (!nNode) continue;
 
@@ -303,10 +306,10 @@ bool SCMNode::rejoinTree()
 void SCMNode::notifyChildren(SCMControlMessage::MsgType msgType)
 {
     for (int i = 0; i < gateSize("port$o"); i++) {
-        cGate *gate = gate("port$o", i);
-        if (!gate->isConnected()) continue;
+        cGate *g = gate("port$o", i);
+        if (!g->isConnected()) continue;
 
-        cModule *neighbor = gate->getNextGate()->getOwnerModule();
+        cModule *neighbor = g->getNextGate()->getOwnerModule();
         SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
         if (nNode && nNode->parentId == id) {
             SCMControlMessage *msg = new SCMControlMessage("Notify");

@@ -2,6 +2,8 @@
 #include "SCMNode.h"
 #include "SCMMessages.h"
 
+using namespace omnetpp;
+
 Define_Module(SCMFaultInjector);
 
 void SCMFaultInjector::initialize()

@@ -5,7 +5,12 @@
 #include "SCMMessages.h"
 #include <vector>
 #include <string>
+
+// Suppress OpenSSL 3.0 deprecation warnings for EC_KEY API
+#define OPENSSL_SUPPRESS_DEPRECATED
 #include <openssl/ec.h>
+
+using namespace omnetpp;
 
 // Proof structure for cryptographic auditing — declared before SCMNode
 // because SCMNode methods reference it.
