@@ -7,6 +7,7 @@ RUN apt-get update && \
     python3-dev \
     git \
     curl \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
@@ -23,7 +24,7 @@ RUN uv sync --frozen --no-dev
 SHELL ["/bin/bash", "-c"]
 RUN source /root/omnetpp/setenv && \
     cd omnetpp/simulations && \
-    opp_makemake -f --deep -o scm-simulations && \
+    opp_makemake -f --deep -o scm-simulations -I/usr/include -L/usr/lib/x86_64-linux-gnu -lssl -lcrypto && \
     make -j$(nproc)
 
 # Final stage
