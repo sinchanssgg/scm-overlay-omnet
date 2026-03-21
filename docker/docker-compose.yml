@@ -7,7 +7,7 @@ services:
       - ../results:/workspace/results
     command: ["/workspace/scripts/run_experiments.sh"]
     environment:
-      - OMNETPP_IMAGE_VERSION=6.0.1
+      - OMNETPP_IMAGE_VERSION=6.0
 
   analysis:
     build:

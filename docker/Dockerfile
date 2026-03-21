@@ -1,5 +1,5 @@
 # Build stage
-FROM omnetpp/omnetpp:6.0.1-ubuntu20.04 AS builder
+FROM omnetpp/omnetpp:u22.04-6.0 AS builder
 
 # Install dependencies
 RUN apt-get update && \
@@ -25,7 +25,7 @@ RUN cd omnetpp/simulations && \
     make -j$(nproc)
 
 # Final stage
-FROM omnetpp/omnetpp:6.0.1-ubuntu20.04
+FROM omnetpp/omnetpp:u22.04-6.0
 
 # Install uv in runtime stage
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
