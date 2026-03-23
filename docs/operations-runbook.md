@@ -64,7 +64,7 @@ GUI is optional and not required for artifact checks. Prefer headless unless vis
 | `uv: command not found` | uv not installed | Install uv, then run `uv sync` |
 | `OMNeT++ not found` | Submodule/environment not initialized | Run submodule init and ensure `third_party/omnetpp/setenv` exists |
 | `.vec` not found in result dir | Scenario output path mismatch or run failure | Re-run with clean `RESULT_DIR`, verify non-zero simulation output |
-| Plot appears blank in quick run | Metric values may be all zero in smoke scenario | Confirm `analysis.csv`; quick-run plots include explicit zero annotations |
+| Parent-attack line plot missing some topology lines | Missing baseline/parent scenario pair for that topology | Ensure default full matrix ran and verify `Baseline*` + `FaultParent*` scenario directories exist |
 | OOM / very slow run | Profile too large for machine | Use small/medium profile or lower node counts first |
 
 ## 6) Runtime safety notes

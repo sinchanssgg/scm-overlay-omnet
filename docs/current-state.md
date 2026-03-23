@@ -37,6 +37,17 @@ This file captures the verified repository state from a source-level documentati
 - `--claim-b` now provides a dedicated algorithm comparison matrix (SCM/Garg-Grosu/Byrenheid) without changing default quick/full behavior.
 - `build_fig5_outputs.py` now reads `algorithm` and `topology` directly from simulation exports, removing scenario-name heuristic labeling.
 
+### 2.6 Default metrics plot semantics
+
+- `scripts/visualization/plot_metrics.py` is now aligned with the parent-manipulation artifact objective.
+- `metrics_plot.png` is rendered as line curves with one line per topology (CBT, ER, Twitch), comparing:
+  - baseline average beta
+  - parent-attack average beta
+- The pipeline also emits `parent_attack_beta_summary.csv` with per-topology:
+  - `baseline_beta`
+  - `parent_attack_beta`
+  - `beta_pct_increase`
+
 ### 2.4 Legacy Docker entrypoint drift
 
 - `docker/entrypoint.sh` is not the path used by current compose flow.

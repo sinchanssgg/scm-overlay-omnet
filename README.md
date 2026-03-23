@@ -10,6 +10,17 @@ This repository contains:
 - An OMNeT++ upstream Git submodule under `third_party/omnetpp`
 - Docker assets for reproducible execution under `docker/`
 
+## What we are trying to do (artifact goal)
+
+The primary artifact goal is to demonstrate, with executable evidence, that SCM behavior is evaluated consistently across topology and adversary dimensions.
+
+- Every topology (`CBT`, `ER`, `Twitch`) must be exercised under all three fault/adversary scenarios (`Distance`, `Beta`, `Parent`) in the default non-quick pipeline.
+- For parent-manipulation analysis, the default `metrics_plot.png` now emphasizes topology-comparative behavior:
+  - one line (curve) per topology
+  - baseline vs parent-attack average beta
+  - parent-attack represented by adversarial random node selection in the configured fault injector
+- The same run also emits `parent_attack_beta_summary.csv` with per-topology baseline beta, attack beta, and percent increase.
+
 ## Documentation Map
 
 - Setup and dependencies: `docs/setup.md`
@@ -83,7 +94,7 @@ Artifact figure reproduction (Figure 3 style):
 ```bash
 uv run python scripts/analysis/build_fig3_outputs.py results/fig3 \
   --cbt-state-dir results/latest/BaselineCBT \
-  --twitch-state-dir results/latest/BaselineER \
+  --twitch-state-dir results/latest/BaselineTwitch \
   --twitch-nodes 50
 ```
 
@@ -130,6 +141,7 @@ Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
+- `$RESULT_DIR/parent_attack_beta_summary.csv`
 
 For Figure 2 artifact output:
 - `results/fig2/analysis.csv`

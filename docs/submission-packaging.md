@@ -33,6 +33,7 @@ Use a persistent identifier (DOI) from the archival platform.
 Each path must produce:
 - `analysis.csv`
 - `metrics_plot.png`
+- `parent_attack_beta_summary.csv` (for default pipeline path)
 
 ## 4) Metadata checklist for DOI deposit
 

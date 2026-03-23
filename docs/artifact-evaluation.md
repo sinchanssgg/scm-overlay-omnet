@@ -61,6 +61,11 @@ Expected for each output directory:
 - `analysis.csv`
 - `metrics_plot.png`
 
+Default pipeline plotting objective (`metrics_plot.png`):
+- line graph with one curve per topology (CBT, ER, Twitch)
+- compares baseline vs parent-attack average beta
+- backed by `parent_attack_beta_summary.csv`
+
 ## 4) Output contract checks
 
 Quick pipeline output validation:

@@ -99,7 +99,7 @@ Intended flow:
 1. Parse OMNeT++ vector output
 2. Aggregate per-scenario metrics
 3. Export CSV summary
-4. Render summary plots
+4. Render parent-attack topology-comparison plot (`metrics_plot.png`) and summary CSV (`parent_attack_beta_summary.csv`)
 
 ## 6. OMNeT++ Upstream Submodule
 
