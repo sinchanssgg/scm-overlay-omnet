@@ -1,0 +1,67 @@
+name: ci-smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  preprocess-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run preprocessing tests
+        run: uv run python -m unittest tests/test_preprocess.py -v
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build Docker image
+        run: docker build -f docker/Dockerfile -t scm-overlay-omnet:ci .
+
+      - name: Run quick pipeline in container
+        run: |
+          mkdir -p "$RUNNER_TEMP/scm-results"
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            -e RESULT_DIR=/tmp/results \
+            -e SCM_RANDOM_SEED=1337 \
+            scm-overlay-omnet:ci \
+            /bin/bash -lc "cd /workspace/omnetpp/simulations && ./scm-simulations -u Cmdenv -c BaselineCBT -n networks --result-dir=/tmp/results/BaselineCBT-smoke"
+
+      - name: Generate analysis+plot smoke artifact in container
+        run: |
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            scm-overlay-omnet:ci \
+            /workspace/.venv/bin/python \
+            /workspace/scripts/analysis/build_fig2_outputs.py /tmp/results/fig2-smoke --num-nodes 255 --max-depth 8 --seed 1337
+
+      - name: Validate quick output artifacts
+        run: |
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            scm-overlay-omnet:ci \
+            /workspace/.venv/bin/python \
+            /workspace/scripts/analysis/validate_outputs.py /tmp/results/fig2-smoke --require-columns topology,depth,avg_beta_pct_increase,avg_payment_pct_increase,user_fraction_receiving_service --require-non-empty
