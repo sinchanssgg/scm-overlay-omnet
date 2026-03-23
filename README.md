@@ -101,6 +101,7 @@ Notes:
 - Default active run matrix executes: `BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`.
 - `BaselineCBT`/`FaultDistance` run on `CompleteBinaryTree`.
 - `BaselineER`/`FaultBeta` run on `ErdosRenyi`.
+- `BaselineTwitch`/`FaultParent` run on `TwitchNetwork` when invoked.
 - `SCMNetwork` remains the global default for configs that do not override `network`.
 - Preprocessing still generates `cbt_edges.txt` and `er_edges.txt`, but these files are not yet consumed by the active CBT/ER NED topologies.
 
