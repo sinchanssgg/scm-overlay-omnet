@@ -9,5 +9,6 @@ simple SCMNode {
         @display("i=block/process");
 
     gates:
+        input faultIn;  // Dedicated gate for fault-injector direct notifications
         inout port[];  // Bidirectional connections to neighbors
 }

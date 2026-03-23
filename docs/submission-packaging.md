@@ -25,6 +25,7 @@ Use a persistent identifier (DOI) from the archival platform.
 ## 3) Claim-to-command mapping
 
 - Claim 1 (MWE): `./scripts/run_experiments.sh --mwe`
+- Topology x fault matrix (all 3 faults on each topology): `./scripts/run_experiments.sh`
 - Figure 2: `uv run python scripts/analysis/build_fig2_outputs.py ...`
 - Figure 3: `uv run python scripts/analysis/build_fig3_outputs.py ...`
 - Figure 5: `uv run python scripts/analysis/build_fig5_outputs.py ...`
@@ -32,6 +33,7 @@ Use a persistent identifier (DOI) from the archival platform.
 Each path must produce:
 - `analysis.csv`
 - `metrics_plot.png`
+- `parent_attack_beta_summary.csv` (for default pipeline path)
 
 ## 4) Metadata checklist for DOI deposit
 
@@ -59,7 +61,7 @@ And run figure scripts:
 uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --result-root /tmp/scm-quick
 uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 \
   --cbt-state-dir /tmp/scm-quick/BaselineCBT \
-  --twitch-state-dir /tmp/scm-quick/BaselineER \
+  --twitch-state-dir /tmp/scm-quick/BaselineTwitch \
   --twitch-nodes 50
 uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --result-root /tmp/scm-quick
 ```

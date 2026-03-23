@@ -62,7 +62,7 @@ void SCMFaultInjector::notifyNodeFault(SCMNode *node)
     SCMControlMessage *faultMsg = new SCMControlMessage("FaultNotify");
     faultMsg->setMsgType(SCMControlMessage::FAULT_NOTIFY);
     faultMsg->setSenderId(-1);  // From fault injector
-    sendDirect(faultMsg, node->gate("port$i", 0));
+    sendDirect(faultMsg, node->gate("faultIn"));
 }
 
 void SCMFaultInjector::applyFaultToNode(SCMNode *node, int numNodes)

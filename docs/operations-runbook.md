@@ -18,7 +18,7 @@ This runbook provides practical guidance for safe execution sizing and headless 
 - Command:
   - `RESULT_DIR=/tmp/scm-medium SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh`
 - Intended scope:
-  - default scenario matrix (`BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`)
+  - default topology x fault matrix plus baselines across CBT/ER/Twitch
 - Recommended machine:
   - 4+ CPU cores, 8GB RAM
 
@@ -27,7 +27,7 @@ This runbook provides practical guidance for safe execution sizing and headless 
   - `RESULT_DIR=/tmp/scm-mwe MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe`
 - Figure generation:
   - `uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --result-root /tmp/scm-quick`
-  - `uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-state-dir /tmp/scm-quick/BaselineCBT --twitch-state-dir /tmp/scm-quick/BaselineER --twitch-nodes 50`
+  - `uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-state-dir /tmp/scm-quick/BaselineCBT --twitch-state-dir /tmp/scm-quick/BaselineTwitch --twitch-nodes 50`
   - `uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --result-root /tmp/scm-quick`
 - Recommended machine:
   - 8+ CPU cores, 16GB RAM
@@ -64,7 +64,7 @@ GUI is optional and not required for artifact checks. Prefer headless unless vis
 | `uv: command not found` | uv not installed | Install uv, then run `uv sync` |
 | `OMNeT++ not found` | Submodule/environment not initialized | Run submodule init and ensure `third_party/omnetpp/setenv` exists |
 | `.vec` not found in result dir | Scenario output path mismatch or run failure | Re-run with clean `RESULT_DIR`, verify non-zero simulation output |
-| Plot appears blank in quick run | Metric values may be all zero in smoke scenario | Confirm `analysis.csv`; quick-run plots include explicit zero annotations |
+| Parent-attack line plot missing some topology lines | Missing baseline/parent scenario pair for that topology | Ensure default full matrix ran and verify `Baseline*` + `FaultParent*` scenario directories exist |
 | OOM / very slow run | Profile too large for machine | Use small/medium profile or lower node counts first |
 
 ## 6) Runtime safety notes

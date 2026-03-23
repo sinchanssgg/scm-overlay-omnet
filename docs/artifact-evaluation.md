@@ -47,7 +47,7 @@ Figure 3:
 ```bash
 uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 \
   --cbt-state-dir /tmp/scm-quick/BaselineCBT \
-  --twitch-state-dir /tmp/scm-quick/BaselineER \
+  --twitch-state-dir /tmp/scm-quick/BaselineTwitch \
   --twitch-nodes 50
 ```
 
@@ -61,6 +61,11 @@ Expected for each output directory:
 - `analysis.csv`
 - `metrics_plot.png`
 
+Default pipeline plotting objective (`metrics_plot.png`):
+- line graph with one curve per topology (CBT, ER, Twitch)
+- compares baseline vs parent-attack average beta
+- backed by `parent_attack_beta_summary.csv`
+
 ## 4) Output contract checks
 
 Quick pipeline output validation:
@@ -69,6 +74,8 @@ Quick pipeline output validation:
 RESULT_DIR=/tmp/scm-quick SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --skip-sim-build
 uv run python scripts/analysis/validate_outputs.py /tmp/scm-quick --require-columns scenario,value_mean,value_std,value_count,time_max --require-non-empty
 ```
+
+This default run now executes full topology x fault coverage (CBT/ER/Twitch with all three fault types), plus each topology baseline.
 
 ## 5) Environment/resource guidance
 
