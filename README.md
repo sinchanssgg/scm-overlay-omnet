@@ -68,6 +68,12 @@ SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --quick
 uv run python scripts/analysis/validate_outputs.py /tmp/scm-results --require-non-empty
 ```
 
+Artifact figure reproduction (Figure 2 style):
+
+```bash
+uv run python scripts/analysis/build_fig2_outputs.py results/fig2 --num-nodes 1023 --max-depth 10 --seed 1337
+```
+
 Notes:
 - `run_experiments.sh` bootstraps OMNeT++ environment automatically.
 - If `results/` is not writable, output falls back to `$HOME/.local/state/scm-overlay-omnet/results/...`.
@@ -91,6 +97,10 @@ Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
+
+For Figure 2 artifact output:
+- `results/fig2/analysis.csv`
+- `results/fig2/metrics_plot.png`
 
 `analysis.csv` numeric outputs are written with 6 decimal places, and plots are exported at 300 DPI.
 
