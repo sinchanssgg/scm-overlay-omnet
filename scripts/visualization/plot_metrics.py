@@ -25,25 +25,36 @@ def plot_metrics(result_dir):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
     def render_metric(ax, column, title, ylabel):
+        series = df[column].fillna(0.0)
+        if (series.abs() <= 1e-12).all():
+            ax.set_facecolor("#fff8e1")
+            x = list(range(len(df["scenario"])))
+            ax.scatter(x, [0.0] * len(x), color="#1565c0", s=120, zorder=4)
+            ax.axhline(0.0, color="#d84315", linewidth=2.5, alpha=0.9, zorder=3)
+            ax.set_xticks(x)
+            ax.set_xticklabels(df["scenario"], rotation=45, ha="right")
+            ax.set_ylim(-0.10, 1.00)
+            ax.grid(axis="y", alpha=0.25)
+            ax.set_title(f"{title} (all-zero run)")
+            ax.set_ylabel(ylabel)
+            ax.text(
+                0.5,
+                0.5,
+                "All values are 0.0\n(markers placed at baseline)",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=11,
+                color="#5d4037",
+                bbox={"facecolor": "white", "alpha": 0.9, "edgecolor": "#5d4037"},
+            )
+            return
+
         sns.barplot(data=df, x="scenario", y=column, ax=ax)
         ax.set_title(title)
         ax.set_ylabel(ylabel)
         ax.tick_params(axis="x", rotation=45)
         ax.axhline(0.0, color="black", linewidth=0.8, alpha=0.5)
-
-        series = df[column].fillna(0.0)
-        if (series.abs() <= 1e-12).all():
-            ax.set_ylim(0.0, 1.0)
-            ax.text(
-                0.5,
-                0.5,
-                "All values are 0.0",
-                ha="center",
-                va="center",
-                transform=ax.transAxes,
-                fontsize=10,
-                color="dimgray",
-            )
 
     # Plot 1: Maximum stabilization time per scenario
     render_metric(ax1, "time_max", "Maximum Stabilization Time", "Seconds")
