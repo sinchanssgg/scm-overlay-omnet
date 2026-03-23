@@ -6,7 +6,7 @@
 
 using namespace omnetpp;
 
-class TwitchNetworkInitializer : public cModule
+class TwitchNetworkInitializer : public cSimpleModule
 {
   protected:
     virtual void initialize() override {

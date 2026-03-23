@@ -3,11 +3,17 @@ network CompleteBinaryTree
 {
     parameters:
         int numNodes @default(31);
+        string edgeFilePath @default("");
         double faultProbability @default(0);
         double faultInterval @unit(s) @default(10s);
         @display("bgb=800,600");
 
     submodules:
+        initializer: EdgeFileNetworkInitializer {
+            edgeFilePath = parent.edgeFilePath;
+            @display("p=50,80");
+        }
+
         faultInjector: SCMFaultInjector {
             faultProbability = parent.faultProbability;
             interval = parent.faultInterval;
@@ -21,9 +27,5 @@ network CompleteBinaryTree
         }
 
     connections allowunconnected:
-        // Tree connections built programmatically by CBTBuilder
-        // or via NED loops for parent-child pairs:
-        for i=1..numNodes-1 {
-            node[i].port++ <--> { delay = 100ms; } <--> node[int((i-1)/2)].port++;
-        }
+        // Connections are created by EdgeFileNetworkInitializer from edgeFilePath.
 }

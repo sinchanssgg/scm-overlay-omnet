@@ -127,8 +127,28 @@ export OMNETPP_ROOT
 export OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED"
 
 # Generate topology files
-uv run python "$SCRIPT_DIR/preprocess/generate_cbt.py" --depth 5 --output "$RESULT_DIR/cbt_edges.txt"
-uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes 50 --prob 0.2 --seed "$SCM_RANDOM_SEED" --output "$RESULT_DIR/er_edges.txt"
+CBT_NODES=31
+ER_NODES=50
+ER_PROB=0.2
+if [[ "$MWE_MODE" -eq 1 ]]; then
+    CBT_NODES="${MWE_NUM_NODES:-1024}"
+elif [[ "$CLAIM_A_MODE" -eq 1 ]]; then
+    if [[ "$QUICK_MODE" -eq 1 ]]; then
+        CBT_NODES=63
+        ER_NODES=50
+    else
+        CBT_NODES=127
+        ER_NODES=100
+    fi
+elif [[ "$CLAIM_B_MODE" -eq 1 ]]; then
+    if [[ "$QUICK_MODE" -eq 1 ]]; then
+        CBT_NODES=63
+    else
+        CBT_NODES=127
+    fi
+fi
+uv run python "$SCRIPT_DIR/preprocess/generate_cbt.py" --nodes "$CBT_NODES" --output "$RESULT_DIR/cbt_edges.txt"
+uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes "$ER_NODES" --prob "$ER_PROB" --seed "$SCM_RANDOM_SEED" --output "$RESULT_DIR/er_edges.txt"
 
 # Run simulations
 SIM_DIR="$PROJECT_ROOT/omnetpp/simulations"
@@ -208,6 +228,9 @@ fi
 for config in "${configs[@]}"; do
     echo "Running $config..."
     config_result_dir="$sim_root/$config"
+    mkdir -p "$config_result_dir"
+    cp -f "$RESULT_DIR/cbt_edges.txt" "$config_result_dir/cbt_edges.txt"
+    cp -f "$RESULT_DIR/er_edges.txt" "$config_result_dir/er_edges.txt"
     if [[ "$MWE_MODE" -eq 1 ]]; then
         ./scm-simulations -u Cmdenv -c "$config" -n networks \
             --result-dir="$config_result_dir" \

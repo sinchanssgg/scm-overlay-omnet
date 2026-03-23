@@ -112,7 +112,7 @@ Notes:
 - `BaselineTwitch`/`FaultParent` run on `TwitchNetwork` when invoked.
 - `--claim-b` runs algorithm comparison scenarios (SCM, Garg-Grosu, Byrenheid) for Figure-5 style analysis.
 - `SCMNetwork` remains the global default for configs that do not override `network`.
-- Preprocessing still generates `cbt_edges.txt` and `er_edges.txt`, but these files are not yet consumed by the active CBT/ER NED topologies.
+- Preprocessing-generated `cbt_edges.txt` and `er_edges.txt` are now consumed by active CBT/ER runtime initializers.
 
 See `docs/current-state.md` for known gaps and caveats.
 

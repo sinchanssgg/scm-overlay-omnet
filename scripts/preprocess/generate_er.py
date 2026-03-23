@@ -2,7 +2,12 @@
 import argparse
 import random
 
+
 def generate_er(num_nodes, prob, output_file, seed=None):
+    if num_nodes < 2:
+        raise ValueError(f"num_nodes must be >= 2 (got {num_nodes})")
+    if prob < 0.0 or prob > 1.0:
+        raise ValueError(f"prob must be in [0,1] (got {prob})")
     if seed is not None:
         random.seed(seed)
     else:
