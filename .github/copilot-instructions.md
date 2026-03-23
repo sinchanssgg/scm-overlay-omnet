@@ -61,8 +61,10 @@ This repo is a layered experiment pipeline:
 - Use `uv run python ...` for Python scripts to guarantee the managed environment from `pyproject.toml`/`uv.lock`.
 - `scripts/run_experiments.sh` is the source of truth for runnable scenario selection:
   - `--quick` => `BaselineCBT`
-  - default => `BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`
-- `omnetpp.ini` sets global `network = SCMNetwork`; dedicated NED networks (`CompleteBinaryTree`, `ErdosRenyi`, `TwitchNetwork`) exist but are not the default active path.
+  - default => full 3x3 topology x fault matrix across CBT/ER/Twitch:
+    - baselines: `BaselineCBT`, `BaselineER`, `BaselineTwitch`
+    - faults per topology: `FaultDistance*`, `FaultBeta*`, `FaultParent*`
+- `omnetpp.ini` sets global `network = SCMNetwork`; active scenario configs in the default run matrix explicitly override this with dedicated NED networks (`CompleteBinaryTree`, `ErdosRenyi`, `TwitchNetwork`).
 - `RESULT_DIR` defaults to `results/<timestamp>`; if unwritable, script falls back to `${XDG_STATE_HOME:-$HOME/.local/state}/scm-overlay-omnet/results/<timestamp>`.
 - Runtime outputs belong under top-level `results/`; `docs/results/` is for narrative documentation, not pipeline outputs.
 - OMNeT++ is pinned as a Git submodule (`third_party/omnetpp`) for reproducible runs. Use `scripts/check_omnetpp_version.sh` to compare pinned state vs upstream tags.

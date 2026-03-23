@@ -47,8 +47,11 @@ Config groups include:
 - Comparison configs (`GargGrosu`, `Byrenheid`)
 
 Current behavior note:
-- Active runs in `scripts/run_experiments.sh` currently execute `BaselineCBT`, `FaultDistance`, `BaselineER`, and `FaultBeta`.
-- `BaselineCBT`/`FaultDistance` explicitly run on `CompleteBinaryTree`, and `BaselineER`/`FaultBeta` explicitly run on `ErdosRenyi`.
+- Active default runs in `scripts/run_experiments.sh` execute full topology x fault coverage:
+  - CBT (`CompleteBinaryTree`): `FaultDistance`, `FaultBetaCBT`, `FaultParentCBT`
+  - ER (`ErdosRenyi`): `FaultDistanceER`, `FaultBeta`, `FaultParentER`
+  - Twitch (`TwitchNetwork`): `FaultDistanceTwitch`, `FaultBetaTwitch`, `FaultParent`
+- Baselines (`BaselineCBT`, `BaselineER`, `BaselineTwitch`) are also part of default mode.
 - `--claim-b` executes algorithm-comparison scenarios and preserves default matrix behavior.
 
 ## 3. Data and Topology Preparation
@@ -64,7 +67,7 @@ These scripts are intended to create topology inputs before simulation runs.
 Current integration note:
 - CBT/ER preprocess scripts generate edge files into the run directory.
 - Active CBT/ER scenarios run on dedicated NED topologies (`CompleteBinaryTree`, `ErdosRenyi`) and consume generated `cbt_edges.txt` / `er_edges.txt` via runtime edge-file initializers.
-- Twitch preprocessing exists but is not part of the default run matrix.
+- The default pipeline also generates `twitch_edges.txt` and includes Twitch scenarios in the default matrix.
 
 ## 4. Experiment Orchestration
 
@@ -118,4 +121,4 @@ make
 
 The design intent is coherent: generate topology -> run scenario matrix -> analyze and plot results.
 
-Current implementation is runnable through the scripted pipeline, but there are still integration gaps between documented topology intent and the default scenario/network wiring. See `docs/current-state.md` for current verified gaps.
+Current implementation is runnable through the scripted pipeline with explicit topology/fault matrix wiring. See `docs/current-state.md` for remaining verified gaps outside this matrix contract.

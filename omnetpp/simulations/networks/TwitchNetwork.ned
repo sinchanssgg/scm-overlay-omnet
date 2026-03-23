@@ -8,7 +8,7 @@ network TwitchNetwork
     
     submodules:
         initializer: TwitchNetworkInitializer {
-            edgeFilePath = edgeFilePath;
+            edgeFilePath = parent.edgeFilePath;
         }
         
         faultInjector: SCMFaultInjector {

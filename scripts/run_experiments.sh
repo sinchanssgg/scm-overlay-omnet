@@ -149,6 +149,7 @@ elif [[ "$CLAIM_B_MODE" -eq 1 ]]; then
 fi
 uv run python "$SCRIPT_DIR/preprocess/generate_cbt.py" --nodes "$CBT_NODES" --output "$RESULT_DIR/cbt_edges.txt"
 uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes "$ER_NODES" --prob "$ER_PROB" --seed "$SCM_RANDOM_SEED" --output "$RESULT_DIR/er_edges.txt"
+uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes 256 --prob 0.02 --seed "$SCM_RANDOM_SEED" --output "$RESULT_DIR/twitch_edges.txt"
 
 # Run simulations
 SIM_DIR="$PROJECT_ROOT/omnetpp/simulations"
@@ -214,7 +215,20 @@ elif [[ "$CLAIM_B_MODE" -eq 1 ]]; then
 elif [[ "$QUICK_MODE" -eq 1 ]]; then
     configs=(BaselineCBT)
 else
-    configs=(BaselineCBT FaultDistance BaselineER FaultBeta)
+    configs=(
+        BaselineCBT
+        FaultDistance
+        FaultBetaCBT
+        FaultParentCBT
+        BaselineER
+        FaultDistanceER
+        FaultBeta
+        FaultParentER
+        BaselineTwitch
+        FaultDistanceTwitch
+        FaultBetaTwitch
+        FaultParent
+    )
 fi
 
 if [[ "$CLAIM_A_MODE" -eq 1 ]]; then
@@ -231,6 +245,7 @@ for config in "${configs[@]}"; do
     mkdir -p "$config_result_dir"
     cp -f "$RESULT_DIR/cbt_edges.txt" "$config_result_dir/cbt_edges.txt"
     cp -f "$RESULT_DIR/er_edges.txt" "$config_result_dir/er_edges.txt"
+    cp -f "$RESULT_DIR/twitch_edges.txt" "$config_result_dir/twitch_edges.txt"
     if [[ "$MWE_MODE" -eq 1 ]]; then
         ./scm-simulations -u Cmdenv -c "$config" -n networks \
             --result-dir="$config_result_dir" \

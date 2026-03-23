@@ -11,10 +11,13 @@ This file captures the verified repository state from a source-level documentati
 
 ## 2. Verified Gaps (Current)
 
-### 2.1 Baseline runtime network selection
+### 2.1 Runtime topology x fault matrix selection
 
-- `BaselineCBT` and `FaultDistance` explicitly run on `CompleteBinaryTree`.
-- `BaselineER` and `FaultBeta` explicitly run on `ErdosRenyi`.
+- Default `run_experiments.sh` now executes all three fault scenarios on each topology:
+  - CBT: `FaultDistance`, `FaultBetaCBT`, `FaultParentCBT`
+  - ER: `FaultDistanceER`, `FaultBeta`, `FaultParentER`
+  - Twitch: `FaultDistanceTwitch`, `FaultBetaTwitch`, `FaultParent`
+- Baseline runs for each topology are included in default mode (`BaselineCBT`, `BaselineER`, `BaselineTwitch`).
 - `SCMNetwork` remains the global default for configs that do not set `network` in scenario config.
 
 ### 2.2 Edge-file wiring status
@@ -23,12 +26,11 @@ This file captures the verified repository state from a source-level documentati
 - `CompleteBinaryTree` and `ErdosRenyi` now consume these files via runtime initializer modules.
 - Invalid/missing edge files fail fast during network initialization.
 
-### 2.3 Twitch scenario is not part of default pipeline
+### 2.3 Twitch path in default pipeline
 
-- Twitch configs exist in `omnetpp.ini`, and Twitch initializer code exists.
-- Default `run_experiments.sh` matrix does not execute Twitch scenarios.
-- `BaselineTwitch` expects `twitch_edges.txt` in result directory, but default pipeline does not generate it.
-- `scripts/preprocess/process_twitch.py` defaults to `twitch_processed.txt`; use `--output twitch_edges.txt` or adjust `omnetpp.ini` to avoid filename mismatch.
+- Twitch baseline/fault scenarios are now part of the default matrix.
+- `run_experiments.sh` generates a deterministic `twitch_edges.txt` input and copies it to each scenario result directory.
+- `BaselineTwitch` consumes `${resultdir}/twitch_edges.txt` consistently.
 
 ### 2.5 Figure-5 algorithm comparison path
 

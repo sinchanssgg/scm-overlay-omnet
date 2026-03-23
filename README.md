@@ -106,13 +106,16 @@ Notes:
 
 ## Current Runtime Behavior
 
-- Default active run matrix executes: `BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`.
-- `BaselineCBT`/`FaultDistance` run on `CompleteBinaryTree`.
-- `BaselineER`/`FaultBeta` run on `ErdosRenyi`.
-- `BaselineTwitch`/`FaultParent` run on `TwitchNetwork` when invoked.
+- Default active run matrix executes a full topology x fault campaign:
+  - `CompleteBinaryTree`: `FaultDistance`, `FaultBetaCBT`, `FaultParentCBT`
+  - `ErdosRenyi`: `FaultDistanceER`, `FaultBeta`, `FaultParentER`
+  - `TwitchNetwork`: `FaultDistanceTwitch`, `FaultBetaTwitch`, `FaultParent`
+- Baselines for each topology are also included in default mode:
+  - `BaselineCBT`, `BaselineER`, `BaselineTwitch`
+- `--quick` remains a smoke run and executes only `BaselineCBT`.
 - `--claim-b` runs algorithm comparison scenarios (SCM, Garg-Grosu, Byrenheid) for Figure-5 style analysis.
 - `SCMNetwork` remains the global default for configs that do not override `network`.
-- Preprocessing-generated `cbt_edges.txt` and `er_edges.txt` are now consumed by active CBT/ER runtime initializers.
+- Preprocessing-generated `cbt_edges.txt`, `er_edges.txt`, and `twitch_edges.txt` are copied into each scenario result directory and consumed by active runtime initializers.
 
 See `docs/current-state.md` for known gaps and caveats.
 
