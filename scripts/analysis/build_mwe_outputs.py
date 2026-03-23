@@ -44,6 +44,9 @@ def export_analysis(df: pd.DataFrame, out_dir: Path) -> None:
 
 def build_tree_plot(df: pd.DataFrame, out_dir: Path) -> None:
     nodes = sorted(df["node_id"].astype(int).tolist())
+    if not nodes:
+        print("ERROR: no nodes found in MWE analysis data", file=sys.stderr)
+        sys.exit(1)
 
     pos = {}
     max_level = max((node.bit_length() for node in nodes), default=1) - 1
@@ -62,6 +65,8 @@ def build_tree_plot(df: pd.DataFrame, out_dir: Path) -> None:
     budget_gap = payment_sum - total_link_cost
 
     fig, ax = plt.subplots(figsize=(14, 8))
+    draw_labels = len(nodes) <= 256
+    draw_scatter = len(nodes) <= 4096
     # Draw edges
     for node_id in nodes:
         if node_id == 0:
@@ -72,26 +77,36 @@ def build_tree_plot(df: pd.DataFrame, out_dir: Path) -> None:
         ax.plot([x1, x2], [y1, y2], color="#9e9e9e", linewidth=1.0, alpha=0.7, zorder=1)
 
     # Draw nodes
-    xs = [pos[n][0] for n in nodes]
-    ys = [pos[n][1] for n in nodes]
-    node_colors = []
-    for node_id in nodes:
-        row = df.loc[df["node_id"] == node_id].iloc[0]
-        node_colors.append("#4caf50" if int(row["proof_valid"]) == 1 else "#ef5350")
-    ax.scatter(xs, ys, s=850, c=node_colors, edgecolors="black", linewidths=0.6, zorder=2)
+    if draw_scatter:
+        xs = [pos[n][0] for n in nodes]
+        ys = [pos[n][1] for n in nodes]
+        node_colors = []
+        for node_id in nodes:
+            row = df.loc[df["node_id"] == node_id].iloc[0]
+            node_colors.append("#4caf50" if int(row["proof_valid"]) == 1 else "#ef5350")
+        marker_size = 850 if len(nodes) <= 256 else 80
+        ax.scatter(xs, ys, s=marker_size, c=node_colors, edgecolors="black", linewidths=0.4, zorder=2)
 
     # Draw labels
-    for _, row in df.sort_values("node_id").iterrows():
-        node_id = int(row["node_id"])
-        label = (
-            f"{node_id}\n"
-            f"β={float(row['beta']):.3f}\n"
-            f"p={float(row['payment']):.3f}"
-        )
-        x, y = pos[node_id]
-        ax.text(x, y, label, fontsize=7, ha="center", va="center", zorder=3)
+    if draw_labels:
+        for _, row in df.sort_values("node_id").iterrows():
+            node_id = int(row["node_id"])
+            label = (
+                f"{node_id}\n"
+                f"β={float(row['beta']):.3f}\n"
+                f"p={float(row['payment']):.3f}"
+            )
+            x, y = pos[node_id]
+            ax.text(x, y, label, fontsize=7, ha="center", va="center", zorder=3)
 
-    ax.set_title("SCM MWE Tree: per-node beta/payment (green=proof valid)")
+    node_count = len(nodes)
+    if draw_labels:
+        title_suffix = "annotated per-node beta/payment"
+    elif draw_scatter:
+        title_suffix = "large-scale node map (labels suppressed)"
+    else:
+        title_suffix = "edge-only topology view"
+    ax.set_title(f"SCM MWE Tree ({node_count} nodes): {title_suffix}")
     ax.axis("off")
     fig.text(
         0.02,

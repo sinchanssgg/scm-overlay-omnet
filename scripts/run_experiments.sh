@@ -24,6 +24,7 @@ Options:
 
 Environment:
     RESULT_DIR           Custom result directory (default: results/<timestamp>)
+    MWE_NUM_NODES        Node count for --mwe mode (default: 1024)
 EOF
 }
 
@@ -114,6 +115,12 @@ fi
 
 cd "$SIM_DIR"
 if [[ "$MWE_MODE" -eq 1 ]]; then
+    MWE_NUM_NODES="${MWE_NUM_NODES:-1024}"
+    if ! [[ "$MWE_NUM_NODES" =~ ^[0-9]+$ ]] || [[ "$MWE_NUM_NODES" -lt 8 ]]; then
+        echo "ERROR: MWE_NUM_NODES must be an integer >= 8 (got: $MWE_NUM_NODES)" >&2
+        exit 2
+    fi
+    export MWE_NUM_NODES
     configs=(MWE)
 elif [[ "$QUICK_MODE" -eq 1 ]]; then
     configs=(BaselineCBT)
@@ -124,8 +131,14 @@ fi
 for config in "${configs[@]}"; do
     echo "Running $config..."
     config_result_dir="$RESULT_DIR/$config"
-    ./scm-simulations -u Cmdenv -c "$config" -n networks \
-        --result-dir="$config_result_dir"
+    if [[ "$MWE_MODE" -eq 1 ]]; then
+        ./scm-simulations -u Cmdenv -c "$config" -n networks \
+            --result-dir="$config_result_dir" \
+            --**.numNodes="$MWE_NUM_NODES"
+    else
+        ./scm-simulations -u Cmdenv -c "$config" -n networks \
+            --result-dir="$config_result_dir"
+    fi
 done
 
 if [[ "$MWE_MODE" -eq 1 ]]; then
