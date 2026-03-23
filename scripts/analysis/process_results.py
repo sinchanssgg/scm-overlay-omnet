@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Parse OMNeT++ vector output files and produce per-scenario metrics."""
 import pandas as pd
-import numpy as np
 from pathlib import Path
-import re
 import sys
 
 
@@ -98,9 +96,12 @@ def analyze_results(result_dir):
         time_max=("time", "max"),
     ).reset_index()
 
+    for col in ("value_mean", "value_std", "time_max"):
+        metrics[col] = metrics[col].fillna(0.0).round(6)
+
     # Save with flat column names so downstream tools can read it trivially
     out_path = result_path / "analysis.csv"
-    metrics.to_csv(out_path, index=False)
+    metrics.to_csv(out_path, index=False, float_format="%.6f")
     print(f"Saved analysis to {out_path}")
     print(metrics.to_string(index=False))
 
