@@ -24,17 +24,32 @@ def plot_metrics(result_dir):
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
+    def render_metric(ax, column, title, ylabel):
+        sns.barplot(data=df, x="scenario", y=column, ax=ax)
+        ax.set_title(title)
+        ax.set_ylabel(ylabel)
+        ax.tick_params(axis="x", rotation=45)
+        ax.axhline(0.0, color="black", linewidth=0.8, alpha=0.5)
+
+        series = df[column].fillna(0.0)
+        if (series.abs() <= 1e-12).all():
+            ax.set_ylim(0.0, 1.0)
+            ax.text(
+                0.5,
+                0.5,
+                "All values are 0.0",
+                ha="center",
+                va="center",
+                transform=ax.transAxes,
+                fontsize=10,
+                color="dimgray",
+            )
+
     # Plot 1: Maximum stabilization time per scenario
-    sns.barplot(data=df, x="scenario", y="time_max", ax=ax1)
-    ax1.set_title("Maximum Stabilization Time")
-    ax1.set_ylabel("Seconds")
-    ax1.tick_params(axis="x", rotation=45)
+    render_metric(ax1, "time_max", "Maximum Stabilization Time", "Seconds")
 
     # Plot 2: Beta value standard deviation per scenario
-    sns.barplot(data=df, x="scenario", y="value_std", ax=ax2)
-    ax2.set_title("Beta Value Standard Deviation")
-    ax2.set_ylabel("Std Dev")
-    ax2.tick_params(axis="x", rotation=45)
+    render_metric(ax2, "value_std", "Beta Value Standard Deviation", "Std Dev")
 
     plt.tight_layout()
 
