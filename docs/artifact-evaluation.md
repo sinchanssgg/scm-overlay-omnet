@@ -39,19 +39,22 @@ Expected:
 Figure 2:
 
 ```bash
-uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --num-nodes 1023 --max-depth 10 --seed 1337
+uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --result-root /tmp/scm-quick
 ```
 
 Figure 3:
 
 ```bash
-uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-nodes 16383 --twitch-nodes 1023 --seed 1337
+uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 \
+  --cbt-state-dir /tmp/scm-quick/BaselineCBT \
+  --twitch-state-dir /tmp/scm-quick/BaselineER \
+  --twitch-nodes 50
 ```
 
 Figure 5:
 
 ```bash
-uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --max-depth 10 --seed 1337
+uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --result-root /tmp/scm-quick
 ```
 
 Expected for each output directory:
@@ -63,8 +66,8 @@ Expected for each output directory:
 Quick pipeline output validation:
 
 ```bash
-RESULT_DIR=/tmp/scm-quick SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --quick
-uv run python scripts/analysis/validate_outputs.py /tmp/scm-quick --require-non-empty
+RESULT_DIR=/tmp/scm-quick SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --skip-sim-build
+uv run python scripts/analysis/validate_outputs.py /tmp/scm-quick --require-columns scenario,value_mean,value_std,value_count,time_max --require-non-empty
 ```
 
 ## 5) Environment/resource guidance

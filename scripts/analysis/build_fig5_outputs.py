@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Build Figure-5 style convergence comparison outputs."""
+"""Build Figure-5 convergence outputs from simulation node-state + vectors."""
 from __future__ import annotations
 
 import argparse
-import random
 from pathlib import Path
 
 import matplotlib
@@ -14,48 +13,126 @@ import pandas as pd
 import seaborn as sns
 
 
-def synthesize_rounds(topology: str, depth: int, algorithm: str, rng: random.Random) -> tuple[float, bool]:
-    topo_factor = 1.0 if topology == "CBT" else 0.85
-    noise = rng.uniform(-0.4, 0.6)
-
-    if algorithm == "SCM":
-        rounds = topo_factor * (2.2 * depth + 2.0 + noise)
-        correct = True
-    elif algorithm == "Byrenheid":
-        rounds = topo_factor * (2.0 * depth + 2.4 + noise)
-        correct = True
-    elif algorithm == "Garg-Grosu":
-        rounds = topo_factor * (1.2 * depth + 1.6 + noise)
-        correct = rng.random() > 0.70  # roughly 30% correct
-    else:
-        raise ValueError(f"Unknown algorithm: {algorithm}")
-
-    return max(1.0, rounds), correct
-
-
-def build_analysis(max_depth: int, seed: int) -> pd.DataFrame:
-    rng = random.Random(seed)
+def parse_vec_file(vec_path: Path) -> pd.DataFrame:
+    vectors = {}
     rows = []
-    for topology in ("Twitch", "CBT"):
-        for depth in range(1, max_depth + 1):
-            for algorithm in ("SCM", "Byrenheid", "Garg-Grosu"):
-                rounds, correct = synthesize_rounds(topology, depth, algorithm, rng)
+    with vec_path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("vector "):
+                parts = line.split()
+                if len(parts) >= 4:
+                    vec_id = parts[1]
+                    signal = parts[3].split(":")[0]
+                    vectors[vec_id] = signal
+                continue
+            if line.startswith(("version", "run", "attr", "param", "itervar")):
+                continue
+            parts = line.split()
+            if len(parts) >= 4 and parts[0] in vectors:
                 rows.append(
                     {
-                        "topology": topology,
-                        "depth": depth,
-                        "algorithm": algorithm,
-                        "rounds_to_converge": round(rounds, 6),
-                        "correct_convergence": bool(correct),
+                        "signal": vectors[parts[0]],
+                        "time": float(parts[2]),
+                        "value": float(parts[3]),
                     }
                 )
     return pd.DataFrame(rows)
+
+
+def load_node_state(path: Path) -> pd.DataFrame:
+    csv_path = path / "mwe_node_state.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Expected node state export: {csv_path}")
+    df = pd.read_csv(csv_path)
+    required = {"level", "status", "proof_valid"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns in {csv_path}: {sorted(missing)}")
+    return df
+
+
+def infer_topology(scenario: str) -> str:
+    if "ER" in scenario or "Beta" in scenario:
+        return "Twitch"
+    return "CBT"
+
+
+def infer_algorithm(scenario: str) -> str:
+    if "Distance" in scenario:
+        return "SCM"
+    if "Beta" in scenario:
+        return "Byrenheid"
+    return "Garg-Grosu"
+
+
+def latest_stabilization_time(scenario_dir: Path) -> float:
+    times: list[float] = []
+    for vec in scenario_dir.glob("*.vec"):
+        df = parse_vec_file(vec)
+        if df.empty:
+            continue
+        stable = df[df["signal"] == "nodeStableTime"]
+        if stable.empty:
+            times.append(float(df["time"].max()))
+        else:
+            times.append(float(stable["time"].max()))
+    if not times:
+        raise ValueError(f"No usable vector data found in {scenario_dir}")
+    return float(sum(times) / len(times))
+
+
+def build_analysis(result_root: Path) -> pd.DataFrame:
+    rows = []
+    scenario_dirs = [p for p in result_root.iterdir() if p.is_dir()]
+    if not scenario_dirs:
+        raise FileNotFoundError(f"No scenario directories found under {result_root}")
+    for scenario_dir in scenario_dirs:
+        scenario = scenario_dir.name
+        state_path = scenario_dir / "mwe_node_state.csv"
+        if not state_path.exists():
+            continue
+        state = load_node_state(scenario_dir)
+        rounds = latest_stabilization_time(scenario_dir)
+        depth = int(state["level"].max())
+        correct = bool(((state["status"] == "STABLE") & (state["proof_valid"].astype(int) == 1)).all())
+
+        rows.append(
+            {
+                "topology": infer_topology(scenario),
+                "depth": depth,
+                "algorithm": infer_algorithm(scenario),
+                "rounds_to_converge": rounds,
+                "correct_convergence": correct,
+            }
+        )
+
+    if not rows:
+        raise ValueError("Parsed vectors but no usable rows for convergence analysis")
+
+    out = pd.DataFrame(rows)
+    out = (
+        out.groupby(["topology", "depth", "algorithm"], as_index=False)
+        .agg(
+            rounds_to_converge=("rounds_to_converge", "mean"),
+            correct_convergence=("correct_convergence", "all"),
+        )
+    )
+    out["rounds_to_converge"] = out["rounds_to_converge"].round(6)
+    return out
 
 
 def plot_fig5(df: pd.DataFrame, out_path: Path) -> None:
     fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
     for ax, topology in zip(axes, ("Twitch", "CBT")):
         subset = df[df["topology"] == topology]
+        if subset.empty:
+            ax.set_title(f"{topology} convergence rounds")
+            ax.text(0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center")
+            ax.axis("off")
+            continue
         sns.lineplot(
             data=subset,
             x="depth",
@@ -75,14 +152,13 @@ def plot_fig5(df: pd.DataFrame, out_path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dir", help="Directory for fig5 outputs")
-    parser.add_argument("--max-depth", type=int, default=10)
-    parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--result-root", required=True, help="Result root containing scenario subdirs and .vec files")
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = build_analysis(args.max_depth, args.seed)
+    df = build_analysis(Path(args.result_root))
     out_csv = out_dir / "analysis.csv"
     out_png = out_dir / "metrics_plot.png"
     df.to_csv(out_csv, index=False)

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Build Figure-3 style proof-size comparison outputs."""
+"""Build Figure-3 proof-size outputs from real simulation state exports."""
 from __future__ import annotations
 
 import argparse
-import random
 from pathlib import Path
 
 import matplotlib
@@ -14,79 +13,64 @@ import pandas as pd
 import seaborn as sns
 
 
-def cbt_depth(node_id: int) -> int:
-    return (node_id + 1).bit_length() - 1
+def load_node_state(path: Path) -> pd.DataFrame:
+    csv_path = path / "mwe_node_state.csv"
+    if not csv_path.exists():
+        raise FileNotFoundError(f"Expected node state export: {csv_path}")
+    df = pd.read_csv(csv_path)
+    required = {"node_id", "level", "subtree_size", "beta", "payment", "proof_size_bytes", "proof_valid"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns in {csv_path}: {sorted(missing)}")
+    return df
 
 
-def generate_scm_sizes(num_nodes: int, seed: int) -> list[float]:
-    rng = random.Random(seed)
-    sizes = []
-    for _ in range(num_nodes):
-        # Compact proof target around ~130 bytes with minor variation.
-        sizes.append(128.0 + rng.uniform(-8.0, 10.0))
-    return sizes
+def measured_scm_proof_size(df: pd.DataFrame) -> float:
+    measured = df["proof_size_bytes"].astype(float)
+    valid = measured[measured > 0]
+    if valid.empty:
+        raise ValueError("No non-zero proof_size_bytes found in node-state export")
+    return float(valid.mean())
 
 
-def generate_garg_grosu_sizes_cbt(num_nodes: int, seed: int) -> list[float]:
-    rng = random.Random(seed)
-    sizes = []
-    for node_id in range(num_nodes):
-        depth = cbt_depth(node_id)
-        # Chained-signature style growth with path depth.
-        sizes.append(320.0 + depth * 315.0 + rng.uniform(-50.0, 80.0))
-    return sizes
+def estimate_garg_grosu_size(df: pd.DataFrame) -> float:
+    depths = df["level"].astype(int).clip(lower=1)
+    per_hop_sig = 72.0
+    metadata = 64.0
+    return float((depths * per_hop_sig + metadata).mean())
 
 
-def generate_garg_grosu_sizes_twitch(num_nodes: int, seed: int) -> list[float]:
-    rng = random.Random(seed)
-    sizes = []
-    for _ in range(num_nodes):
-        hop_like = max(1.0, rng.gauss(mu=14.0, sigma=3.0))
-        sizes.append(280.0 + hop_like * 305.0 + rng.uniform(-60.0, 90.0))
-    return sizes
+def build_analysis(cbt_dir: Path, twitch_dir: Path, twitch_nodes: int) -> pd.DataFrame:
+    cbt = load_node_state(cbt_dir)
+    twitch = load_node_state(twitch_dir)
+    twitch = twitch.sort_values("node_id").head(twitch_nodes)
 
-
-def build_analysis(cbt_nodes: int, twitch_nodes: int, seed: int) -> pd.DataFrame:
-    rows = []
-
-    scm_cbt = generate_scm_sizes(cbt_nodes, seed + 1)
-    gg_cbt = generate_garg_grosu_sizes_cbt(cbt_nodes, seed + 2)
-    scm_twitch = generate_scm_sizes(twitch_nodes, seed + 3)
-    gg_twitch = generate_garg_grosu_sizes_twitch(twitch_nodes, seed + 4)
-
-    rows.append(
+    rows = [
         {
             "topology": "CBT",
-            "num_nodes": cbt_nodes,
+            "num_nodes": int(len(cbt)),
             "method": "SCM",
-            "avg_proof_size_bytes": sum(scm_cbt) / len(scm_cbt),
-        }
-    )
-    rows.append(
+            "avg_proof_size_bytes": measured_scm_proof_size(cbt),
+        },
         {
             "topology": "CBT",
-            "num_nodes": cbt_nodes,
+            "num_nodes": int(len(cbt)),
             "method": "Garg-Grosu",
-            "avg_proof_size_bytes": sum(gg_cbt) / len(gg_cbt),
-        }
-    )
-    rows.append(
+            "avg_proof_size_bytes": estimate_garg_grosu_size(cbt),
+        },
         {
             "topology": "Twitch",
-            "num_nodes": twitch_nodes,
+            "num_nodes": int(len(twitch)),
             "method": "SCM",
-            "avg_proof_size_bytes": sum(scm_twitch) / len(scm_twitch),
-        }
-    )
-    rows.append(
+            "avg_proof_size_bytes": measured_scm_proof_size(twitch),
+        },
         {
             "topology": "Twitch",
-            "num_nodes": twitch_nodes,
+            "num_nodes": int(len(twitch)),
             "method": "Garg-Grosu",
-            "avg_proof_size_bytes": sum(gg_twitch) / len(gg_twitch),
-        }
-    )
-
+            "avg_proof_size_bytes": estimate_garg_grosu_size(twitch),
+        },
+    ]
     df = pd.DataFrame(rows)
     df["avg_proof_size_bytes"] = df["avg_proof_size_bytes"].round(6)
     return df
@@ -106,16 +90,15 @@ def plot_fig3(df: pd.DataFrame, out_path: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dir", help="Directory for fig3 outputs")
-    parser.add_argument("--cbt-nodes", type=int, default=16383)
+    parser.add_argument("--cbt-state-dir", required=True, help="Dir containing cbt mwe_node_state.csv")
+    parser.add_argument("--twitch-state-dir", required=True, help="Dir containing twitch mwe_node_state.csv")
     parser.add_argument("--twitch-nodes", type=int, default=1023)
-    parser.add_argument("--seed", type=int, default=1337)
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = build_analysis(args.cbt_nodes, args.twitch_nodes, args.seed)
-
+    df = build_analysis(Path(args.cbt_state_dir), Path(args.twitch_state_dir), args.twitch_nodes)
     out_csv = out_dir / "analysis.csv"
     out_png = out_dir / "metrics_plot.png"
     df.to_csv(out_csv, index=False, float_format="%.6f")

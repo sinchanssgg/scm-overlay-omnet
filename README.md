@@ -74,19 +74,22 @@ uv run python scripts/analysis/validate_outputs.py /tmp/scm-results --require-no
 Artifact figure reproduction (Figure 2 style):
 
 ```bash
-uv run python scripts/analysis/build_fig2_outputs.py results/fig2 --num-nodes 1023 --max-depth 10 --seed 1337
+uv run python scripts/analysis/build_fig2_outputs.py results/fig2 --result-root results/latest
 ```
 
 Artifact figure reproduction (Figure 3 style):
 
 ```bash
-uv run python scripts/analysis/build_fig3_outputs.py results/fig3 --cbt-nodes 16383 --twitch-nodes 1023 --seed 1337
+uv run python scripts/analysis/build_fig3_outputs.py results/fig3 \
+  --cbt-state-dir results/latest/BaselineCBT \
+  --twitch-state-dir results/latest/BaselineER \
+  --twitch-nodes 50
 ```
 
 Artifact figure reproduction (Figure 5 style):
 
 ```bash
-uv run python scripts/analysis/build_fig5_outputs.py results/fig5 --max-depth 10 --seed 1337
+uv run python scripts/analysis/build_fig5_outputs.py results/fig5 --result-root results/latest
 ```
 
 Notes:

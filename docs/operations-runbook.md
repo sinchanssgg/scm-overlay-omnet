@@ -26,9 +26,9 @@ This runbook provides practical guidance for safe execution sizing and headless 
 - MWE large:
   - `RESULT_DIR=/tmp/scm-mwe MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe`
 - Figure generation:
-  - `uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --num-nodes 1023 --max-depth 10 --seed 1337`
-  - `uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-nodes 16383 --twitch-nodes 1023 --seed 1337`
-  - `uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --max-depth 10 --seed 1337`
+  - `uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --result-root /tmp/scm-quick`
+  - `uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-state-dir /tmp/scm-quick/BaselineCBT --twitch-state-dir /tmp/scm-quick/BaselineER --twitch-nodes 50`
+  - `uv run python scripts/analysis/build_fig5_outputs.py /tmp/scm-fig5 --result-root /tmp/scm-quick`
 - Recommended machine:
   - 8+ CPU cores, 16GB RAM
 
