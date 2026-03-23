@@ -41,6 +41,12 @@ void SCMNode::initialize()
     id = par("id");
     numUsers = par("numUsers");
     linkCost = par("linkCost");
+    const char *variant = par("algorithmVariant").stringValue();
+    if (strcmp(variant, "scm") != 0) {
+        EV_WARN << "algorithmVariant=" << variant
+                << " requested on node " << id
+                << ", but only SCM behavior is implemented; using SCM logic." << endl;
+    }
 
     // Register signal for stabilization metrics
     stabilizationTimeSignal = registerSignal("nodeStableTime");
