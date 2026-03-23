@@ -63,7 +63,7 @@ These scripts are intended to create topology inputs before simulation runs.
 
 Current integration note:
 - CBT/ER preprocess scripts generate edge files into the run directory.
-- Active CBT/ER scenarios now run on dedicated NED topologies (`CompleteBinaryTree`, `ErdosRenyi`), but these NED topologies still do not consume generated edge-list files directly.
+- Active CBT/ER scenarios run on dedicated NED topologies (`CompleteBinaryTree`, `ErdosRenyi`) and consume generated `cbt_edges.txt` / `er_edges.txt` via runtime edge-file initializers.
 - Twitch preprocessing exists but is not part of the default run matrix.
 
 ## 4. Experiment Orchestration

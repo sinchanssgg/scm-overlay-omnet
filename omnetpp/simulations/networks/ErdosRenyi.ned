@@ -3,12 +3,18 @@ network ErdosRenyi
 {
     parameters:
         int numNodes @default(20);
+        string edgeFilePath @default("");
         double connectionProbability @default(0.3);
         double faultProbability @default(0);
         double faultInterval @unit(s) @default(10s);
         @display("bgb=800,600");
     
     submodules:
+        initializer: EdgeFileNetworkInitializer {
+            edgeFilePath = parent.edgeFilePath;
+            @display("p=50,80");
+        }
+
         faultInjector: SCMFaultInjector {
             faultProbability = parent.faultProbability;
             interval = parent.faultInterval;
@@ -22,12 +28,5 @@ network ErdosRenyi
         }
     
     connections allowunconnected:
-        // Random connections with given probability
-        for i=0..numNodes-2, for j=i+1..numNodes-1 {
-            node[i].port++ <--> { 
-                delay = 100ms; 
-                @display("ls=blue,1");
-            } <--> node[j].port++ 
-                if uniform(0,1) < connectionProbability;
-        }
+        // Connections are created by EdgeFileNetworkInitializer from edgeFilePath.
 }

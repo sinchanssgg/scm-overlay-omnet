@@ -17,10 +17,11 @@ This file captures the verified repository state from a source-level documentati
 - `BaselineER` and `FaultBeta` explicitly run on `ErdosRenyi`.
 - `SCMNetwork` remains the global default for configs that do not set `network` in scenario config.
 
-### 2.2 Preprocessing artifacts are not fully wired into active topology behavior
+### 2.2 Edge-file wiring status
 
-- `run_experiments.sh` generates `cbt_edges.txt` and `er_edges.txt`.
-- The active `SCMNetwork` currently creates random links directly in NED and does not consume those generated edge files.
+- `run_experiments.sh` generates `cbt_edges.txt` and `er_edges.txt` per run.
+- `CompleteBinaryTree` and `ErdosRenyi` now consume these files via runtime initializer modules.
+- Invalid/missing edge files fail fast during network initialization.
 
 ### 2.3 Twitch scenario is not part of default pipeline
 

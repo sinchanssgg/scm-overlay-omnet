@@ -65,3 +65,22 @@ jobs:
             scm-overlay-omnet:ci \
             /workspace/.venv/bin/python \
             /workspace/scripts/analysis/validate_outputs.py /tmp/results/fig2-smoke --require-columns topology,depth,avg_beta_pct_increase,avg_payment_pct_increase,user_fraction_receiving_service --require-non-empty
+
+      - name: Validate claim-b fig5 smoke output
+        run: |
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            -e RESULT_DIR=/tmp/results \
+            -e SCM_RANDOM_SEED=1337 \
+            scm-overlay-omnet:ci \
+            /bin/bash -lc "cd /workspace && ./scripts/run_experiments.sh --claim-b --quick --skip-sim-build"
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            scm-overlay-omnet:ci \
+            /workspace/.venv/bin/python \
+            /workspace/scripts/analysis/build_fig5_outputs.py /tmp/results/fig5-smoke --result-root /tmp/results/claim-b
+          docker run --rm \
+            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
+            scm-overlay-omnet:ci \
+            /workspace/.venv/bin/python \
+            /workspace/scripts/analysis/validate_outputs.py /tmp/results/fig5-smoke --require-columns topology,depth,algorithm,rounds_to_converge,correct_convergence --require-non-empty

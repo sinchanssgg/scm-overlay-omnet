@@ -19,6 +19,19 @@ class TestPreprocessScripts(unittest.TestCase):
             self.assertIn("0 1", lines)
             self.assertIn("0 2", lines)
 
+    def test_generate_cbt_nodes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "cbt_nodes.txt"
+            subprocess.run(
+                ["uv", "run", "python", "scripts/preprocess/generate_cbt.py", "--nodes", "10", "--output", str(out)],
+                check=True,
+            )
+            lines = out.read_text(encoding="utf-8").strip().splitlines()
+            self.assertTrue(lines[0].startswith("# Complete Binary Tree with 10 nodes"))
+            self.assertEqual(len(lines), 10)
+            self.assertIn("0 1", lines)
+            self.assertIn("4 9", lines)
+
     def test_generate_er_seeded_deterministic(self):
         with tempfile.TemporaryDirectory() as tmp:
             out1 = Path(tmp) / "er1.txt"
@@ -41,6 +54,27 @@ class TestPreprocessScripts(unittest.TestCase):
                 out1.read_text(encoding="utf-8"),
                 out2.read_text(encoding="utf-8"),
             )
+
+    def test_generate_er_invalid_probability_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "bad_er.txt"
+            proc = subprocess.run(
+                [
+                    "uv",
+                    "run",
+                    "python",
+                    "scripts/preprocess/generate_er.py",
+                    "--nodes",
+                    "12",
+                    "--prob",
+                    "1.2",
+                    "--output",
+                    str(out),
+                ],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(proc.returncode, 0)
 
 
 if __name__ == "__main__":
