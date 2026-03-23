@@ -22,6 +22,7 @@ Options:
 
 Environment:
     RESULT_DIR           Custom result directory (default: results/<timestamp>)
+    SCM_RANDOM_SEED      Seed for deterministic preprocessing/simulation (default: 1337)
 EOF
 }
 
@@ -52,6 +53,9 @@ if ! command -v uv >/dev/null 2>&1; then
     echo "Install uv first: https://docs.astral.sh/uv/getting-started/installation/" >&2
     exit 1
 fi
+
+SCM_RANDOM_SEED="${SCM_RANDOM_SEED:-1337}"
+export SCM_RANDOM_SEED
 
 timestamp="$(date +%Y%m%d_%H%M%S)"
 DEFAULT_RESULT_DIR="$PROJECT_ROOT/results/$timestamp"
@@ -91,10 +95,11 @@ set +u
 source "$OMNETPP_ROOT/setenv" -q
 set -u
 export OMNETPP_ROOT
+export OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED"
 
 # Generate topology files
 uv run python "$SCRIPT_DIR/preprocess/generate_cbt.py" --depth 5 --output "$RESULT_DIR/cbt_edges.txt"
-uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes 50 --prob 0.2 --output "$RESULT_DIR/er_edges.txt"
+uv run python "$SCRIPT_DIR/preprocess/generate_er.py" --nodes 50 --prob 0.2 --seed "$SCM_RANDOM_SEED" --output "$RESULT_DIR/er_edges.txt"
 
 # Run simulations
 SIM_DIR="$PROJECT_ROOT/omnetpp/simulations"

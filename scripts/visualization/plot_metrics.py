@@ -39,7 +39,7 @@ def plot_metrics(result_dir):
     plt.tight_layout()
 
     out_path = Path(result_dir) / "metrics_plot.png"
-    plt.savefig(out_path, dpi=150)
+    plt.savefig(out_path, dpi=300)
     print(f"Saved plot to {out_path}")
 
 
