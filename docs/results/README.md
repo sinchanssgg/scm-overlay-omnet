@@ -27,7 +27,7 @@ When `RESULT_DIR` is set, the same structure is created under that directory.
 `scripts/visualization/plot_metrics.py` renders two bar charts:
 
 - Maximum stabilization time per scenario (`time_max`)
-- Beta value standard deviation per scenario (`value_std`)
+- Standard deviation of aggregated vector values per scenario (`value_std`, currently stabilization-time values from `nodeStableTime`)
 
 ## Suggested usage
 
