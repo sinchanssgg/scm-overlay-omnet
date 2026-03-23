@@ -4,6 +4,7 @@ simple SCMNode {
         int id;
         int numUsers;
         double linkCost @default(1.0);
+        string algorithmVariant @default("scm");
 
         @display("i=block/process");
 

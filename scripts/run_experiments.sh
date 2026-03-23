@@ -8,6 +8,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKIP_SIM_BUILD=0
 QUICK_MODE=0
 MWE_MODE=0
+CLAIM_A_MODE=0
 
 usage() {
     cat <<'EOF'
@@ -19,6 +20,7 @@ Usage:
 Options:
     --quick              Run only BaselineCBT for a fast smoke test
     --mwe                Run only the artifact minimum working example
+    --claim-a            Run claim-matrix scaffold scenarios (PR-A)
     --skip-sim-build     Skip simulation binary build step
     -h, --help           Show this help
 
@@ -39,6 +41,10 @@ while [[ $# -gt 0 ]]; do
             MWE_MODE=1
             shift
             ;;
+        --claim-a)
+            CLAIM_A_MODE=1
+            shift
+            ;;
         --skip-sim-build)
             SKIP_SIM_BUILD=1
             shift
@@ -54,6 +60,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+if [[ "$MWE_MODE" -eq 1 && "$CLAIM_A_MODE" -eq 1 ]]; then
+    echo "ERROR: --mwe and --claim-a cannot be combined" >&2
+    exit 2
+fi
 
 if ! command -v uv >/dev/null 2>&1; then
     echo "ERROR: uv is required but not found in PATH." >&2
@@ -127,15 +138,46 @@ if [[ "$MWE_MODE" -eq 1 ]]; then
     fi
     export MWE_NUM_NODES
     configs=(MWE)
+elif [[ "$CLAIM_A_MODE" -eq 1 ]]; then
+    if [[ "$QUICK_MODE" -eq 1 ]]; then
+        configs=(
+            ClaimA_CBT_Baseline_D5
+            ClaimA_CBT_FaultParent_D5
+            ClaimA_CBT_FaultParent_D5_GargStub
+            ClaimA_CBT_FaultParent_D5_ByrenheidStub
+        )
+    else
+        configs=(
+            ClaimA_CBT_Baseline_D4
+            ClaimA_CBT_FaultParent_D4
+            ClaimA_CBT_Baseline_D5
+            ClaimA_CBT_FaultParent_D5
+            ClaimA_CBT_Baseline_D6
+            ClaimA_CBT_FaultParent_D6
+            ClaimA_ER_Baseline_N50
+            ClaimA_ER_FaultBeta_N50
+            ClaimA_ER_Baseline_N100
+            ClaimA_ER_FaultBeta_N100
+            ClaimA_CBT_FaultParent_D5_GargStub
+            ClaimA_CBT_FaultParent_D5_ByrenheidStub
+            ClaimA_Twitch_FaultParent_N256
+        )
+    fi
 elif [[ "$QUICK_MODE" -eq 1 ]]; then
     configs=(BaselineCBT)
 else
     configs=(BaselineCBT FaultDistance BaselineER FaultBeta)
 fi
 
+if [[ "$CLAIM_A_MODE" -eq 1 ]]; then
+    sim_root="$RESULT_DIR/claim-a"
+else
+    sim_root="$RESULT_DIR"
+fi
+
 for config in "${configs[@]}"; do
     echo "Running $config..."
-    config_result_dir="$RESULT_DIR/$config"
+    config_result_dir="$sim_root/$config"
     if [[ "$MWE_MODE" -eq 1 ]]; then
         ./scm-simulations -u Cmdenv -c "$config" -n networks \
             --result-dir="$config_result_dir" \
@@ -152,10 +194,10 @@ if [[ "$MWE_MODE" -eq 1 ]]; then
     uv run python "$SCRIPT_DIR/analysis/build_mwe_outputs.py" "$RESULT_DIR/MWE" "$mwe_root"
 else
     # Process results
-    uv run python "$SCRIPT_DIR/analysis/process_results.py" "$RESULT_DIR"
+    uv run python "$SCRIPT_DIR/analysis/process_results.py" "$sim_root"
 
     # Generate visualizations
-    uv run python "$SCRIPT_DIR/visualization/plot_metrics.py" "$RESULT_DIR"
+    uv run python "$SCRIPT_DIR/visualization/plot_metrics.py" "$sim_root"
 fi
 
 echo "Experiment pipeline completed"

@@ -109,6 +109,9 @@ class SCMNode : public omnetpp::cSimpleModule {
     int getParentId() const { return parentId; }
     int getLevel() const { return level; }
     double getBeta() const { return beta; }
+    const char* getStatusLabel() const {
+        return (status == STABLE) ? "STABLE" : (status == FAULTY) ? "FAULTY" : "RECOVERING";
+    }
     Status getStatus() const { return status; }
     double getPayment() const { return payment; }
     int getSubtreeSize() const { return subtreeSize; }
