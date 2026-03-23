@@ -74,6 +74,12 @@ Artifact figure reproduction (Figure 2 style):
 uv run python scripts/analysis/build_fig2_outputs.py results/fig2 --num-nodes 1023 --max-depth 10 --seed 1337
 ```
 
+Artifact figure reproduction (Figure 3 style):
+
+```bash
+uv run python scripts/analysis/build_fig3_outputs.py results/fig3 --cbt-nodes 16383 --twitch-nodes 1023 --seed 1337
+```
+
 Notes:
 - `run_experiments.sh` bootstraps OMNeT++ environment automatically.
 - If `results/` is not writable, output falls back to `$HOME/.local/state/scm-overlay-omnet/results/...`.
@@ -101,6 +107,10 @@ Expected layout:
 For Figure 2 artifact output:
 - `results/fig2/analysis.csv`
 - `results/fig2/metrics_plot.png`
+
+For Figure 3 artifact output:
+- `results/fig3/analysis.csv`
+- `results/fig3/metrics_plot.png`
 
 `analysis.csv` numeric outputs are written with 6 decimal places, and plots are exported at 300 DPI.
 
