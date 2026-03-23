@@ -5,6 +5,8 @@ import random
 def generate_er(num_nodes, prob, output_file, seed=None):
     if seed is not None:
         random.seed(seed)
+    else:
+        random.seed(1337)
         
     with open(output_file, 'w') as f:
         f.write(f"# Erdős-Rényi graph with {num_nodes} nodes, p={prob}\n")

@@ -57,6 +57,15 @@ Optional:
 ```bash
 ./scripts/run_experiments.sh --skip-sim-build
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
+./scripts/run_experiments.sh --mwe
+MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe
+```
+
+Reproducibility knobs:
+
+```bash
+SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --quick
+uv run python scripts/analysis/validate_outputs.py /tmp/scm-results --require-non-empty
 ```
 
 Artifact figure reproduction (Figure 2 style):
@@ -92,6 +101,14 @@ Expected layout:
 For Figure 2 artifact output:
 - `results/fig2/analysis.csv`
 - `results/fig2/metrics_plot.png`
+
+`analysis.csv` numeric outputs are written with 6 decimal places, and plots are exported at 300 DPI.
+
+For artifact Claim-1 MWE (`--mwe`), expected layout is:
+- `$RESULT_DIR/mwe/analysis.csv`
+- `$RESULT_DIR/mwe/metrics_plot.png`
+
+`--mwe` defaults to `MWE_NUM_NODES=1024` and supports larger sizes (for example `2048` or `4096`) through environment override.
 
 ## Repository Layout
 
