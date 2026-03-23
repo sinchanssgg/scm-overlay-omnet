@@ -30,6 +30,8 @@ struct ProofStruct {
 
 class SCMNode : public omnetpp::cSimpleModule {
   private:
+    enum class AlgorithmKind { SCM, GARG_GROSU, BYRENHEID };
+
     // Node state variables
     int id;
     int parentId;
@@ -40,6 +42,7 @@ class SCMNode : public omnetpp::cSimpleModule {
     double beta;
     int numUsers;
     double linkCost;
+    AlgorithmKind algorithmKind;
     simsignal_t stabilizationTimeSignal;
     double lastFaultTime;
 
@@ -56,6 +59,7 @@ class SCMNode : public omnetpp::cSimpleModule {
     bool allChildrenHaveProofs();
     bool existsBetterParent();
     int findBestParent();
+    double parentScore(const SCMNode* candidate) const;
     void calculateAlpha();
     void calculateBeta();
     void notifyChildren(SCMControlMessage::MsgType msgType);
@@ -93,6 +97,8 @@ class SCMNode : public omnetpp::cSimpleModule {
     SCMNode* getParentNode();
     std::vector<SCMNode*> getChildrenNodes();
     SCMNode* getNodeById(int nodeId);
+    static AlgorithmKind parseAlgorithmKind(const char* variant);
+    static const char* algorithmKindLabel(AlgorithmKind kind);
 
   protected:
     virtual void initialize() override;

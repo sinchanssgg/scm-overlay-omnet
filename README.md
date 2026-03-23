@@ -62,6 +62,7 @@ Optional:
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
 ./scripts/run_experiments.sh --mwe
 MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe
+./scripts/run_experiments.sh --claim-b --quick
 ```
 
 Reproducibility knobs:
@@ -92,6 +93,13 @@ Artifact figure reproduction (Figure 5 style):
 uv run python scripts/analysis/build_fig5_outputs.py results/fig5 --result-root results/latest
 ```
 
+For claim-matrix algorithm comparison outputs (PR-B path):
+
+```bash
+RESULT_DIR=/tmp/scm-claim-b ./scripts/run_experiments.sh --claim-b --quick
+uv run python scripts/analysis/build_fig5_outputs.py results/fig5 --result-root /tmp/scm-claim-b/claim-b
+```
+
 Notes:
 - `run_experiments.sh` bootstraps OMNeT++ environment automatically.
 - If `results/` is not writable, output falls back to `$HOME/.local/state/scm-overlay-omnet/results/...`.
@@ -102,6 +110,7 @@ Notes:
 - `BaselineCBT`/`FaultDistance` run on `CompleteBinaryTree`.
 - `BaselineER`/`FaultBeta` run on `ErdosRenyi`.
 - `BaselineTwitch`/`FaultParent` run on `TwitchNetwork` when invoked.
+- `--claim-b` runs algorithm comparison scenarios (SCM, Garg-Grosu, Byrenheid) for Figure-5 style analysis.
 - `SCMNetwork` remains the global default for configs that do not override `network`.
 - Preprocessing still generates `cbt_edges.txt` and `er_edges.txt`, but these files are not yet consumed by the active CBT/ER NED topologies.
 

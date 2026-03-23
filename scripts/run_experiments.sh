@@ -9,6 +9,7 @@ SKIP_SIM_BUILD=0
 QUICK_MODE=0
 MWE_MODE=0
 CLAIM_A_MODE=0
+CLAIM_B_MODE=0
 
 usage() {
     cat <<'EOF'
@@ -21,6 +22,7 @@ Options:
     --quick              Run only BaselineCBT for a fast smoke test
     --mwe                Run only the artifact minimum working example
     --claim-a            Run claim-matrix scaffold scenarios (PR-A)
+    --claim-b            Run claim-matrix algorithm comparison scenarios (PR-B)
     --skip-sim-build     Skip simulation binary build step
     -h, --help           Show this help
 
@@ -45,6 +47,10 @@ while [[ $# -gt 0 ]]; do
             CLAIM_A_MODE=1
             shift
             ;;
+        --claim-b)
+            CLAIM_B_MODE=1
+            shift
+            ;;
         --skip-sim-build)
             SKIP_SIM_BUILD=1
             shift
@@ -61,8 +67,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "$MWE_MODE" -eq 1 && "$CLAIM_A_MODE" -eq 1 ]]; then
-    echo "ERROR: --mwe and --claim-a cannot be combined" >&2
+if [[ "$MWE_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --mwe cannot be combined with --claim-a/--claim-b" >&2
+    exit 2
+fi
+
+if [[ "$CLAIM_A_MODE" -eq 1 && "$CLAIM_B_MODE" -eq 1 ]]; then
+    echo "ERROR: --claim-a and --claim-b cannot be combined" >&2
     exit 2
 fi
 
@@ -163,6 +174,23 @@ elif [[ "$CLAIM_A_MODE" -eq 1 ]]; then
             ClaimA_Twitch_FaultParent_N256
         )
     fi
+elif [[ "$CLAIM_B_MODE" -eq 1 ]]; then
+    if [[ "$QUICK_MODE" -eq 1 ]]; then
+        configs=(
+            ClaimA_CBT_FaultParent_D5
+            ClaimA_CBT_FaultParent_D5_GargStub
+            ClaimA_CBT_FaultParent_D5_ByrenheidStub
+        )
+    else
+        configs=(
+            ClaimA_CBT_FaultParent_D4
+            ClaimA_CBT_FaultParent_D5
+            ClaimA_CBT_FaultParent_D6
+            ClaimA_CBT_FaultParent_D5_GargStub
+            ClaimA_CBT_FaultParent_D5_ByrenheidStub
+            ClaimA_Twitch_FaultParent_N256
+        )
+    fi
 elif [[ "$QUICK_MODE" -eq 1 ]]; then
     configs=(BaselineCBT)
 else
@@ -171,6 +199,8 @@ fi
 
 if [[ "$CLAIM_A_MODE" -eq 1 ]]; then
     sim_root="$RESULT_DIR/claim-a"
+elif [[ "$CLAIM_B_MODE" -eq 1 ]]; then
+    sim_root="$RESULT_DIR/claim-b"
 else
     sim_root="$RESULT_DIR"
 fi

@@ -47,25 +47,22 @@ def load_node_state(path: Path) -> pd.DataFrame:
     if not csv_path.exists():
         raise FileNotFoundError(f"Expected node state export: {csv_path}")
     df = pd.read_csv(csv_path)
-    required = {"level", "status", "proof_valid"}
+    required = {"level", "status", "proof_valid", "algorithm", "topology", "scm_local_consistent"}
     missing = required.difference(df.columns)
     if missing:
         raise ValueError(f"Missing required columns in {csv_path}: {sorted(missing)}")
     return df
 
 
-def infer_topology(scenario: str) -> str:
-    if "ER" in scenario or "Beta" in scenario:
+def normalize_topology(topology: str) -> str:
+    top = str(topology).strip()
+    if top in {"CompleteBinaryTree", "SCMNetwork"}:
+        return "CBT"
+    if top in {"TwitchNetwork"}:
         return "Twitch"
-    return "CBT"
-
-
-def infer_algorithm(scenario: str) -> str:
-    if "Distance" in scenario:
-        return "SCM"
-    if "Beta" in scenario:
-        return "Byrenheid"
-    return "Garg-Grosu"
+    if top in {"ErdosRenyi"}:
+        return "ER"
+    return top
 
 
 def latest_stabilization_time(scenario_dir: Path) -> float:
@@ -90,20 +87,43 @@ def build_analysis(result_root: Path) -> pd.DataFrame:
     if not scenario_dirs:
         raise FileNotFoundError(f"No scenario directories found under {result_root}")
     for scenario_dir in scenario_dirs:
-        scenario = scenario_dir.name
         state_path = scenario_dir / "mwe_node_state.csv"
         if not state_path.exists():
             continue
         state = load_node_state(scenario_dir)
         rounds = latest_stabilization_time(scenario_dir)
-        depth = int(state["level"].max())
-        correct = bool(((state["status"] == "STABLE") & (state["proof_valid"].astype(int) == 1)).all())
+        algorithm_values = state["algorithm"].dropna().astype(str).unique().tolist()
+        if len(algorithm_values) != 1:
+            raise ValueError(
+                f"Scenario {scenario_dir.name} has mixed algorithm labels: {algorithm_values}"
+            )
+        topology_values = state["topology"].dropna().astype(str).unique().tolist()
+        if len(topology_values) != 1:
+            raise ValueError(
+                f"Scenario {scenario_dir.name} has mixed topology labels: {topology_values}"
+            )
+
+        algorithm = algorithm_values[0]
+        topology = normalize_topology(topology_values[0])
+        proof_valid = state["proof_valid"].astype(int) == 1
+        stable = state["status"] == "STABLE"
+        scm_consistent = state["scm_local_consistent"].astype(int) == 1
+        stable_levels = state.loc[stable, "level"].astype(int)
+        finite_levels = stable_levels[stable_levels < 1_000_000]
+        if finite_levels.empty:
+            raise ValueError(f"Scenario {scenario_dir.name} has no finite stable levels for depth")
+        depth = int(finite_levels.max())
+        if algorithm == "Garg-Grosu":
+            # Per paper baseline: may converge faster but can be inconsistent.
+            correct = bool((stable & proof_valid & scm_consistent).all())
+        else:
+            correct = bool((stable & proof_valid).all())
 
         rows.append(
             {
-                "topology": infer_topology(scenario),
+                "topology": topology,
                 "depth": depth,
-                "algorithm": infer_algorithm(scenario),
+                "algorithm": algorithm,
                 "rounds_to_converge": rounds,
                 "correct_convergence": correct,
             }
