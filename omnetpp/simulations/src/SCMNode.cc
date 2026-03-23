@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 #define OPENSSL_SUPPRESS_DEPRECATED
@@ -42,11 +43,7 @@ void SCMNode::initialize()
     numUsers = par("numUsers");
     linkCost = par("linkCost");
     const char *variant = par("algorithmVariant").stringValue();
-    if (strcmp(variant, "scm") != 0) {
-        EV_WARN << "algorithmVariant=" << variant
-                << " requested on node " << id
-                << ", but only SCM behavior is implemented; using SCM logic." << endl;
-    }
+    algorithmKind = parseAlgorithmKind(variant);
 
     // Register signal for stabilization metrics
     stabilizationTimeSignal = registerSignal("nodeStableTime");
@@ -158,7 +155,8 @@ void SCMNode::finish()
         return;
     }
 
-    out << "node_id,parent_id,level,num_users,subtree_size,beta,payment,proof_size_bytes,status,proof_valid\n";
+    std::string topologyLabel = network->getNedTypeName();
+    out << "node_id,parent_id,level,num_users,subtree_size,beta,payment,proof_size_bytes,status,proof_valid,algorithm,topology,scm_local_consistent\n";
     int numNodes = network->par("numNodes").intValue();
     for (int i = 0; i < numNodes; i++) {
         cModule *mod = network->getSubmodule("node", i);
@@ -171,6 +169,19 @@ void SCMNode::finish()
             (node->status == STABLE) ? "STABLE" :
             (node->status == FAULTY) ? "FAULTY" : "RECOVERING";
 
+        bool scmLocalConsistent = true;
+        if (node->parentId != -1) {
+            SCMNode *parent = node->getParentNode();
+            if (!parent || node->level != parent->level + 1) {
+                scmLocalConsistent = false;
+            } else if (node->subtreeSize > 0) {
+                double expectedBeta = parent->beta + (node->linkCost / node->subtreeSize);
+                if (fabs(node->beta - expectedBeta) > 1e-6) {
+                    scmLocalConsistent = false;
+                }
+            }
+        }
+
         out << node->id << ","
             << node->parentId << ","
             << node->level << ","
@@ -180,7 +191,10 @@ void SCMNode::finish()
             << node->payment << ","
             << node->proof.size() << ","
             << statusLabel << ","
-            << (node->proof.empty() ? 0 : 1) << "\n";
+            << (node->proof.empty() ? 0 : 1) << ","
+            << algorithmKindLabel(node->algorithmKind) << ","
+            << topologyLabel << ","
+            << (scmLocalConsistent ? 1 : 0) << "\n";
     }
     out.close();
     EV << "Wrote MWE node state CSV to " << outPath << endl;
@@ -213,12 +227,15 @@ void SCMNode::handleStabilization()
         sizeSig.clear();
         betaSig.clear();
         bubble("DETECTED INCONSISTENCY");
-        notifyChildren(SCMControlMessage::FAULT_NOTIFY);
+        if (algorithmKind != AlgorithmKind::GARG_GROSU) {
+            notifyChildren(SCMControlMessage::FAULT_NOTIFY);
+        }
         return;
     }
 
     // Rule 4: Start Recovery (Become RECOVERING when children are ready)
-    if (status == FAULTY && allChildrenRecovering()) {
+    if (status == FAULTY &&
+        (algorithmKind == AlgorithmKind::GARG_GROSU || allChildrenRecovering())) {
         status = RECOVERING;
         calculateAlpha();
         bubble("STARTING RECOVERY");
@@ -247,7 +264,12 @@ void SCMNode::handleStabilization()
 
     // --- Proof Propagation Phase ---
     // Rule 7: Propagate Proof
-    if (status == STABLE && allChildrenHaveProofs()) {
+    bool readyForProof = allChildrenHaveProofs();
+    if (algorithmKind == AlgorithmKind::GARG_GROSU) {
+        // Baseline path: greedy local progress without strict bottom-up dependency.
+        readyForProof = true;
+    }
+    if (status == STABLE && readyForProof) {
         buildProof();
         if (id == 0) {
             verifyProofChain();
@@ -267,6 +289,11 @@ bool SCMNode::notLocallyConsistent()
 
     // Definition 2: level must be parent's level + 1
     if (level != parent->level + 1) return true;
+
+    if (algorithmKind == AlgorithmKind::GARG_GROSU) {
+        // Garg-Grosu baseline consistency predicate is structural.
+        return false;
+    }
 
     // Beta must match: parent_beta + linkCost / subtreeSize
     if (subtreeSize > 0) {
@@ -322,12 +349,12 @@ bool SCMNode::existsBetterParent()
     if (!current) return (best != nullptr);
     if (!best) return false;
 
-    return best->level < current->level;
+    return parentScore(best) < parentScore(current);
 }
 
 int SCMNode::findBestParent()
 {
-    int bestLevel = INT_MAX;
+    double bestScore = INFINITY;
     int bestId = -1;
 
     // Iterate over all connected neighbours via gates
@@ -339,12 +366,29 @@ int SCMNode::findBestParent()
         SCMNode *nNode = dynamic_cast<SCMNode*>(neighbor);
         if (!nNode) continue;
 
-        if (nNode->status == STABLE && nNode->level < bestLevel && nNode->id != id) {
-            bestLevel = nNode->level;
-            bestId = nNode->id;
+        if (nNode->status == STABLE && nNode->id != id) {
+            double score = parentScore(nNode);
+            if (score < bestScore) {
+                bestScore = score;
+                bestId = nNode->id;
+            }
         }
     }
     return bestId;
+}
+
+double SCMNode::parentScore(const SCMNode* candidate) const
+{
+    if (!candidate) {
+        return INFINITY;
+    }
+    if (algorithmKind == AlgorithmKind::GARG_GROSU) {
+        return candidate->beta;
+    }
+    if (algorithmKind == AlgorithmKind::BYRENHEID) {
+        return static_cast<double>(candidate->level) * 1000000.0 + candidate->id;
+    }
+    return candidate->level;
 }
 
 // ─── Tree operations ────────────────────────────────────────────────
@@ -672,4 +716,31 @@ SCMNode* SCMNode::getNodeById(int nodeId)
     cModule *network = getParentModule();
     cModule *mod = network->getSubmodule("node", nodeId);
     return dynamic_cast<SCMNode*>(mod);
+}
+
+SCMNode::AlgorithmKind SCMNode::parseAlgorithmKind(const char* variant)
+{
+    if (!variant || strcmp(variant, "scm") == 0) {
+        return AlgorithmKind::SCM;
+    }
+    if (strcmp(variant, "garg-grosu") == 0) {
+        return AlgorithmKind::GARG_GROSU;
+    }
+    if (strcmp(variant, "byrenheid") == 0) {
+        return AlgorithmKind::BYRENHEID;
+    }
+    throw cRuntimeError("Unsupported algorithmVariant '%s'", variant);
+}
+
+const char* SCMNode::algorithmKindLabel(AlgorithmKind kind)
+{
+    switch (kind) {
+        case AlgorithmKind::SCM:
+            return "SCM";
+        case AlgorithmKind::GARG_GROSU:
+            return "Garg-Grosu";
+        case AlgorithmKind::BYRENHEID:
+            return "Byrenheid";
+    }
+    return "Unknown";
 }

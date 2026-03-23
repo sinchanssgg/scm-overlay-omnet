@@ -44,11 +44,12 @@ Location: `omnetpp/simulations/omnetpp.ini`
 Config groups include:
 - Baseline scenarios (`BaselineCBT`, `BaselineER`, `BaselineTwitch`)
 - Fault scenarios (`FaultDistance`, `FaultBeta`, `FaultParent`)
-- Comparison placeholders (`GargGrosu`, `Byrenheid`)
+- Comparison configs (`GargGrosu`, `Byrenheid`)
 
 Current behavior note:
 - Active runs in `scripts/run_experiments.sh` currently execute `BaselineCBT`, `FaultDistance`, `BaselineER`, and `FaultBeta`.
 - `BaselineCBT`/`FaultDistance` explicitly run on `CompleteBinaryTree`, and `BaselineER`/`FaultBeta` explicitly run on `ErdosRenyi`.
+- `--claim-b` executes algorithm-comparison scenarios and preserves default matrix behavior.
 
 ## 3. Data and Topology Preparation
 

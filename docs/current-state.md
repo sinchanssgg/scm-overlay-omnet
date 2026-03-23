@@ -29,6 +29,11 @@ This file captures the verified repository state from a source-level documentati
 - `BaselineTwitch` expects `twitch_edges.txt` in result directory, but default pipeline does not generate it.
 - `scripts/preprocess/process_twitch.py` defaults to `twitch_processed.txt`; use `--output twitch_edges.txt` or adjust `omnetpp.ini` to avoid filename mismatch.
 
+### 2.5 Figure-5 algorithm comparison path
+
+- `--claim-b` now provides a dedicated algorithm comparison matrix (SCM/Garg-Grosu/Byrenheid) without changing default quick/full behavior.
+- `build_fig5_outputs.py` now reads `algorithm` and `topology` directly from simulation exports, removing scenario-name heuristic labeling.
+
 ### 2.4 Legacy Docker entrypoint drift
 
 - `docker/entrypoint.sh` is not the path used by current compose flow.
