@@ -15,6 +15,7 @@ From repository root:
 
 ```bash
 git submodule update --init --recursive
+# Install uv first if missing: https://docs.astral.sh/uv/getting-started/installation/
 uv sync
 ```
 

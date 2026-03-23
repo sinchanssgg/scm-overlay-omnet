@@ -4,13 +4,15 @@ This directory is reserved for documentation artifacts related to experimental o
 
 ## Runtime output locations
 
-The execution pipeline writes raw artifacts under top-level `results/`:
+The execution pipeline writes raw artifacts under `$RESULT_DIR`.
 
-- `results/<timestamp>/<ConfigName>/...` (OMNeT++ run outputs such as `.vec`/`.sca`)
-- `results/<timestamp>/analysis.csv`
-- `results/<timestamp>/metrics_plot.png`
+- Local default: `RESULT_DIR=results/<timestamp>`
+- Docker compose in this repo: `RESULT_DIR=/workspace/results/latest` in-container (mapped to `results/latest` on the host)
 
-When `RESULT_DIR` is set, the same structure is created under that directory.
+Expected layout under `$RESULT_DIR`:
+- `$RESULT_DIR/<ConfigName>/...` (OMNeT++ run outputs such as `.vec`/`.sca`)
+- `$RESULT_DIR/analysis.csv`
+- `$RESULT_DIR/metrics_plot.png`
 
 ## `analysis.csv` schema
 
@@ -31,7 +33,7 @@ When `RESULT_DIR` is set, the same structure is created under that directory.
 
 ## Suggested usage
 
-Raw outputs should continue to live under top-level `results/` (runtime generated), while this folder is for narrative documentation.
+Raw outputs should continue to live in the runtime result directory (`$RESULT_DIR`), while this folder is for narrative documentation.
 
 Useful artifacts to store here:
 - Methodology notes for experiment batches

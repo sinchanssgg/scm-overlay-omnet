@@ -21,6 +21,7 @@ This repository contains:
 
 ```bash
 git submodule update --init --recursive
+# Install uv first if missing: https://docs.astral.sh/uv/getting-started/installation/
 uv sync
 ```
 
@@ -97,5 +98,5 @@ scripts/visualization/   # Plot generation
 ## Notes
 
 - Python dependencies are managed via `uv` and pinned in `uv.lock`.
-- `docs/results/` stores narrative/result documentation, while runtime artifacts are written under top-level `results/`.
+- `docs/results/` stores narrative/result documentation, while runtime artifacts are written under `$RESULT_DIR`.
 - Run `scripts/check_omnetpp_version.sh` to compare the pinned submodule state against latest upstream tags.
