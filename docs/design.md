@@ -48,7 +48,7 @@ Config groups include:
 
 Current behavior note:
 - Active runs in `scripts/run_experiments.sh` currently execute `BaselineCBT`, `FaultDistance`, `BaselineER`, and `FaultBeta`.
-- These active scenarios use global `network = SCMNetwork` unless explicitly overridden in scenario config.
+- `BaselineCBT`/`FaultDistance` explicitly run on `CompleteBinaryTree`, and `BaselineER`/`FaultBeta` explicitly run on `ErdosRenyi`.
 
 ## 3. Data and Topology Preparation
 
@@ -62,7 +62,7 @@ These scripts are intended to create topology inputs before simulation runs.
 
 Current integration note:
 - CBT/ER preprocess scripts generate edge files into the run directory.
-- The default active network (`SCMNetwork`) currently uses random in-NED connectivity and does not consume those generated files directly.
+- Active CBT/ER scenarios now run on dedicated NED topologies (`CompleteBinaryTree`, `ErdosRenyi`), but these NED topologies still do not consume generated edge-list files directly.
 - Twitch preprocessing exists but is not part of the default run matrix.
 
 ## 4. Experiment Orchestration

@@ -99,8 +99,11 @@ Notes:
 ## Current Runtime Behavior
 
 - Default active run matrix executes: `BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`.
-- All active configs currently use `network = SCMNetwork` from `omnetpp/simulations/omnetpp.ini`.
-- Additional topology/network modules (`CompleteBinaryTree`, `ErdosRenyi`, `TwitchNetwork`) exist in code but are not selected by the default run matrix.
+- `BaselineCBT`/`FaultDistance` run on `CompleteBinaryTree`.
+- `BaselineER`/`FaultBeta` run on `ErdosRenyi`.
+- `BaselineTwitch`/`FaultParent` run on `TwitchNetwork` when invoked.
+- `SCMNetwork` remains the global default for configs that do not override `network`.
+- Preprocessing still generates `cbt_edges.txt` and `er_edges.txt`, but these files are not yet consumed by the active CBT/ER NED topologies.
 
 See `docs/current-state.md` for known gaps and caveats.
 

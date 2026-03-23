@@ -11,11 +11,11 @@ This file captures the verified repository state from a source-level documentati
 
 ## 2. Verified Gaps (Current)
 
-### 2.1 Topology intent vs active runtime network selection
+### 2.1 Baseline runtime network selection
 
-- `omnetpp/simulations/omnetpp.ini` sets global `network = SCMNetwork`.
-- Active scenarios (`BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`) therefore use `SCMNetwork` by default.
-- Dedicated NED networks (`CompleteBinaryTree`, `ErdosRenyi`, `TwitchNetwork`) exist but are not selected by the default run matrix.
+- `BaselineCBT` and `FaultDistance` explicitly run on `CompleteBinaryTree`.
+- `BaselineER` and `FaultBeta` explicitly run on `ErdosRenyi`.
+- `SCMNetwork` remains the global default for configs that do not set `network` in scenario config.
 
 ### 2.2 Preprocessing artifacts are not fully wired into active topology behavior
 
