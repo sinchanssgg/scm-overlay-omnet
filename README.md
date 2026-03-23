@@ -57,6 +57,8 @@ Optional:
 ```bash
 ./scripts/run_experiments.sh --skip-sim-build
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
+./scripts/run_experiments.sh --mwe
+MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe
 ```
 
 Notes:
@@ -82,6 +84,12 @@ Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
+
+For artifact Claim-1 MWE (`--mwe`), expected layout is:
+- `$RESULT_DIR/mwe/analysis.csv`
+- `$RESULT_DIR/mwe/metrics_plot.png`
+
+`--mwe` defaults to `MWE_NUM_NODES=1024` and supports larger sizes (for example `2048` or `4096`) through environment override.
 
 ## Repository Layout
 
