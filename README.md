@@ -18,6 +18,7 @@ This repository contains:
 - Result schema notes: `docs/results/README.md`
 - Artifact evaluator playbook: `docs/artifact-evaluation.md`
 - Submission/DOI packaging checklist: `docs/submission-packaging.md`
+- Resource/headless operations runbook: `docs/operations-runbook.md`
 
 ## First-time Setup
 
