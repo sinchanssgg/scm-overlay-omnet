@@ -75,7 +75,7 @@ See `docs/current-state.md` for known gaps and caveats.
 After a successful run, artifacts are written under `$RESULT_DIR`.
 
 - Default local behavior: `RESULT_DIR=results/<timestamp>`
-- Docker compose default in this repo: `RESULT_DIR=results/latest`
+- Docker compose default in this repo: `RESULT_DIR=/workspace/results/latest` inside the container (volume-mapped to `results/latest` on the host)
 
 Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)

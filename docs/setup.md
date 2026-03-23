@@ -136,7 +136,8 @@ The Twitch network mode expects an edge file path and large node count defaults;
 
 On success, the pipeline writes artifacts under `$RESULT_DIR`.
 By default this is a timestamped folder such as `results/<timestamp>`.
-In docker compose for this repository, `RESULT_DIR` is set to `results/latest`.
+In docker compose for this repository, `RESULT_DIR` is set to `/workspace/results/latest` inside the container.
+That directory is volume-mapped to `results/latest` on the host.
 
 Expected layout:
 - Per-scenario simulator outputs under `$RESULT_DIR/<ConfigName>/`
