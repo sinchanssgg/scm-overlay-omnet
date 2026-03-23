@@ -86,8 +86,8 @@ void SCMNode::handleMessage(cMessage *msg)
         return;
     }
 
-    // Track stabilization time for metrics
-    if (status == STABLE) {
+    // Track stabilization time for metrics (only after a real fault occurred)
+    if (status == STABLE && lastFaultTime > 0) {
         emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
     }
 

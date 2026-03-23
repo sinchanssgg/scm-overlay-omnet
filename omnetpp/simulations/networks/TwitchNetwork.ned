@@ -2,7 +2,7 @@
 network TwitchNetwork
 {
     parameters:
-        string edgeFilePath @default("/home/sengupta-s/Downloads/large_twitch_edges.csv");
+        string edgeFilePath;  // Set via omnetpp.ini or --result-dir
         int numNodes @default(168114); // From Twitch dataset
         @display("bgb=1000,800");
     
