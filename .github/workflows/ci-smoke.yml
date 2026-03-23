@@ -48,7 +48,7 @@ jobs:
             -e RESULT_DIR=/tmp/results \
             -e SCM_RANDOM_SEED=1337 \
             scm-overlay-omnet:ci \
-            /bin/bash -lc "cd /workspace/omnetpp/simulations && ./scm-simulations -u Cmdenv -c BaselineCBT -n networks --result-dir=/tmp/results/BaselineCBT-smoke"
+            /bin/bash -lc "cd /workspace && ./scripts/run_experiments.sh --skip-sim-build"
 
       - name: Generate analysis+plot smoke artifact in container
         run: |
@@ -56,7 +56,7 @@ jobs:
             -v "$RUNNER_TEMP/scm-results:/tmp/results" \
             scm-overlay-omnet:ci \
             /workspace/.venv/bin/python \
-            /workspace/scripts/analysis/build_fig2_outputs.py /tmp/results/fig2-smoke --num-nodes 255 --max-depth 8 --seed 1337
+            /workspace/scripts/analysis/build_fig2_outputs.py /tmp/results/fig2-smoke --result-root /tmp/results
 
       - name: Validate quick output artifacts
         run: |

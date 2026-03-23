@@ -152,7 +152,7 @@ void SCMNode::finish()
         return;
     }
 
-    out << "node_id,num_users,subtree_size,beta,payment,status,proof_valid\n";
+    out << "node_id,parent_id,level,num_users,subtree_size,beta,payment,proof_size_bytes,status,proof_valid\n";
     int numNodes = network->par("numNodes").intValue();
     for (int i = 0; i < numNodes; i++) {
         cModule *mod = network->getSubmodule("node", i);
@@ -166,10 +166,13 @@ void SCMNode::finish()
             (node->status == FAULTY) ? "FAULTY" : "RECOVERING";
 
         out << node->id << ","
+            << node->parentId << ","
+            << node->level << ","
             << node->numUsers << ","
             << node->subtreeSize << ","
             << node->beta << ","
             << node->payment << ","
+            << node->proof.size() << ","
             << statusLabel << ","
             << (node->proof.empty() ? 0 : 1) << "\n";
     }
