@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <fstream>
 #include <sstream>
 #define OPENSSL_SUPPRESS_DEPRECATED
 #include <openssl/ec.h>
@@ -124,6 +125,56 @@ void SCMNode::refreshDisplay() const
                       : (status == FAULTY) ? "red"
                       : "yellow";
     getDisplayString().setTagArg("i2", 0, color);
+}
+
+void SCMNode::finish()
+{
+    if (id != 0) {
+        return;
+    }
+
+    cModule *network = getParentModule();
+    if (!network) {
+        return;
+    }
+
+    const char *resultDirParam = getEnvir()->getConfig()->getConfigValue("result-dir");
+    if (!resultDirParam || !*resultDirParam) {
+        EV_WARN << "result-dir not set; skipping mwe_node_state.csv export" << endl;
+        return;
+    }
+
+    std::string resultDir = resultDirParam;
+    std::string outPath = resultDir + "/mwe_node_state.csv";
+    std::ofstream out(outPath, std::ios::out | std::ios::trunc);
+    if (!out.is_open()) {
+        EV_WARN << "Cannot open " << outPath << " for writing" << endl;
+        return;
+    }
+
+    out << "node_id,num_users,subtree_size,beta,payment,status,proof_valid\n";
+    int numNodes = network->par("numNodes").intValue();
+    for (int i = 0; i < numNodes; i++) {
+        cModule *mod = network->getSubmodule("node", i);
+        SCMNode *node = dynamic_cast<SCMNode*>(mod);
+        if (!node) {
+            continue;
+        }
+
+        const char *statusLabel =
+            (node->status == STABLE) ? "STABLE" :
+            (node->status == FAULTY) ? "FAULTY" : "RECOVERING";
+
+        out << node->id << ","
+            << node->numUsers << ","
+            << node->subtreeSize << ","
+            << node->beta << ","
+            << node->payment << ","
+            << statusLabel << ","
+            << (node->proof.empty() ? 0 : 1) << "\n";
+    }
+    out.close();
+    EV << "Wrote MWE node state CSV to " << outPath << endl;
 }
 
 // ─── Stabilization rules ────────────────────────────────────────────

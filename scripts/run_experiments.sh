@@ -7,6 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SKIP_SIM_BUILD=0
 QUICK_MODE=0
+MWE_MODE=0
 
 usage() {
     cat <<'EOF'
@@ -17,6 +18,7 @@ Usage:
 
 Options:
     --quick              Run only BaselineCBT for a fast smoke test
+    --mwe                Run only the artifact minimum working example
     --skip-sim-build     Skip simulation binary build step
     -h, --help           Show this help
 
@@ -29,6 +31,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --quick)
             QUICK_MODE=1
+            shift
+            ;;
+        --mwe)
+            MWE_MODE=1
             shift
             ;;
         --skip-sim-build)
@@ -107,7 +113,9 @@ if [[ "$SKIP_SIM_BUILD" -eq 0 ]]; then
 fi
 
 cd "$SIM_DIR"
-if [[ "$QUICK_MODE" -eq 1 ]]; then
+if [[ "$MWE_MODE" -eq 1 ]]; then
+    configs=(MWE)
+elif [[ "$QUICK_MODE" -eq 1 ]]; then
     configs=(BaselineCBT)
 else
     configs=(BaselineCBT FaultDistance BaselineER FaultBeta)
@@ -115,14 +123,21 @@ fi
 
 for config in "${configs[@]}"; do
     echo "Running $config..."
+    config_result_dir="$RESULT_DIR/$config"
     ./scm-simulations -u Cmdenv -c "$config" -n networks \
-        --result-dir="$RESULT_DIR/$config"
+        --result-dir="$config_result_dir"
 done
 
-# Process results
-uv run python "$SCRIPT_DIR/analysis/process_results.py" "$RESULT_DIR"
+if [[ "$MWE_MODE" -eq 1 ]]; then
+    mwe_root="$RESULT_DIR/mwe"
+    mkdir -p "$mwe_root"
+    uv run python "$SCRIPT_DIR/analysis/build_mwe_outputs.py" "$RESULT_DIR/MWE" "$mwe_root"
+else
+    # Process results
+    uv run python "$SCRIPT_DIR/analysis/process_results.py" "$RESULT_DIR"
 
-# Generate visualizations
-uv run python "$SCRIPT_DIR/visualization/plot_metrics.py" "$RESULT_DIR"
+    # Generate visualizations
+    uv run python "$SCRIPT_DIR/visualization/plot_metrics.py" "$RESULT_DIR"
+fi
 
 echo "Experiment pipeline completed"

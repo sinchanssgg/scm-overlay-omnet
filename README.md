@@ -57,6 +57,7 @@ Optional:
 ```bash
 ./scripts/run_experiments.sh --skip-sim-build
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
+./scripts/run_experiments.sh --mwe
 ```
 
 Notes:
@@ -82,6 +83,10 @@ Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
+
+For artifact Claim-1 MWE (`--mwe`), expected layout is:
+- `$RESULT_DIR/mwe/analysis.csv`
+- `$RESULT_DIR/mwe/metrics_plot.png`
 
 ## Repository Layout
 
