@@ -130,14 +130,18 @@ The Twitch network mode expects an edge file path and large node count defaults;
 2. Build OMNeT++ if using native path
 3. Run one baseline scenario first: `./scripts/run_experiments.sh --quick`
 4. Run full pipeline: `./scripts/run_experiments.sh`
-5. Confirm outputs (`analysis.csv` and `metrics_plot.png`) exist in run directory
+5. Confirm outputs (`analysis.csv` and `metrics_plot.png`) exist in the result directory (`$RESULT_DIR`; see below)
 
 ## 8. Expected Outputs and Validation
 
-On success, the pipeline should produce:
-- Per-scenario simulator outputs under `results/<timestamp>/<ConfigName>/`
-- Aggregated CSV: `results/<timestamp>/analysis.csv`
-- Plot image: `results/<timestamp>/metrics_plot.png`
+On success, the pipeline writes artifacts under `$RESULT_DIR`.
+By default this is a timestamped folder such as `results/<timestamp>`.
+In docker compose for this repository, `RESULT_DIR` is set to `results/latest`.
+
+Expected layout:
+- Per-scenario simulator outputs under `$RESULT_DIR/<ConfigName>/`
+- Aggregated CSV: `$RESULT_DIR/analysis.csv`
+- Plot image: `$RESULT_DIR/metrics_plot.png`
 
 Helpful log markers:
 - `Found <N> .vec file(s)` (analysis step)

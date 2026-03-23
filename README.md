@@ -72,10 +72,15 @@ See `docs/current-state.md` for known gaps and caveats.
 
 ## Expected Outputs
 
-After a successful run:
-- `results/<timestamp>/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
-- `results/<timestamp>/analysis.csv`
-- `results/<timestamp>/metrics_plot.png`
+After a successful run, artifacts are written under `$RESULT_DIR`.
+
+- Default local behavior: `RESULT_DIR=results/<timestamp>`
+- Docker compose default in this repo: `RESULT_DIR=results/latest`
+
+Expected layout:
+- `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
+- `$RESULT_DIR/analysis.csv`
+- `$RESULT_DIR/metrics_plot.png`
 
 ## Repository Layout
 
