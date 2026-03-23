@@ -9,6 +9,16 @@ This document explains how to prepare the environment for this repository and ho
 - `third_party/omnetpp`: upstream OMNeT++ submodule pinned for reproducibility
 - `docker/`: containerized build/run workflow
 
+## 1.1 First-time Repository Bootstrap
+
+From repository root:
+
+```bash
+git submodule update --init --recursive
+# Install uv first if missing: https://docs.astral.sh/uv/getting-started/installation/
+uv sync
+```
+
 ## 2. Dependency Overview
 
 You need two dependency sets:
@@ -80,12 +90,9 @@ Notes:
 ### 3.2 Build SCM Simulation Project
 
 ```bash
-cd ../omnetpp/simulations
+cd ../../omnetpp/simulations
 make
 ```
-
-Important:
-- The current repository has known build/wiring gaps. See `docs/current-state.md` for required fixes before this succeeds.
 
 ## 4. Docker Setup
 
@@ -96,18 +103,16 @@ cd docker
 docker compose up --build
 ```
 
-This starts:
-- simulation service
-- analysis service
-- visualization service
+Current compose setup starts one `simulation` service that runs the full pipeline (`run_experiments.sh`), including simulation, analysis, and plotting.
 
 Expected output location:
-- `results/`
+- `results/latest/` (mapped from `/workspace/results/latest` in container)
+- plus timestamped run directories under `results/` if configured
 
 ## 5. Pipeline Entry Points
 
 - Main local pipeline script: `scripts/run_experiments.sh`
-- Docker pipeline entrypoint: `docker/entrypoint.sh`
+- Docker compose command: `scripts/run_experiments.sh --skip-sim-build`
 - Simulation config file: `omnetpp/simulations/omnetpp.ini`
 
 ## 6. Topology and Dataset Inputs
@@ -119,17 +124,35 @@ Expected output location:
 	- `scripts/preprocess/process_twitch.py`
 
 The Twitch network mode expects an edge file path and large node count defaults; validate paths and memory constraints before running that scenario.
+- `BaselineTwitch` expects `${resultdir}/twitch_edges.txt`.
+- `scripts/preprocess/process_twitch.py` defaults to `twitch_processed.txt`, so use `--output twitch_edges.txt` (or update `omnetpp.ini` to match your chosen filename).
 
 ## 7. First Practical Bring-Up Order
 
-1. Read `docs/current-state.md`
-2. Apply listed build/wiring fixes
-3. Build OMNeT++ if using native path
-4. Build `omnetpp/simulations`
-5. Run one baseline scenario first (CBT or ER)
-6. Run full pipeline and confirm analysis/plot outputs
+1. Initialize submodules and Python dependencies
+2. Build OMNeT++ if using native path
+3. Run one baseline scenario first: `./scripts/run_experiments.sh --quick`
+4. Run full pipeline: `./scripts/run_experiments.sh`
+5. Confirm outputs (`analysis.csv` and `metrics_plot.png`) exist in the result directory (`$RESULT_DIR`; see below)
 
-## 8. Version Awareness (Pinned vs Latest)
+## 8. Expected Outputs and Validation
+
+On success, the pipeline writes artifacts under `$RESULT_DIR`.
+By default this is a timestamped folder such as `results/<timestamp>`.
+In docker compose for this repository, `RESULT_DIR` is set to `/workspace/results/latest` inside the container.
+That directory is volume-mapped to `results/latest` on the host.
+
+Expected layout:
+- Per-scenario simulator outputs under `$RESULT_DIR/<ConfigName>/`
+- Aggregated CSV: `$RESULT_DIR/analysis.csv`
+- Plot image: `$RESULT_DIR/metrics_plot.png`
+
+Helpful log markers:
+- `Found <N> .vec file(s)` (analysis step)
+- `Saved analysis to .../analysis.csv`
+- `Saved plot to .../metrics_plot.png`
+
+## 9. Version Awareness (Pinned vs Latest)
 
 Use the helper script to check:
 
