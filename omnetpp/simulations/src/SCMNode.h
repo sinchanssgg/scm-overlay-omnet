@@ -98,6 +98,7 @@ class SCMNode : public omnetpp::cSimpleModule {
     virtual void initialize() override;
     virtual void handleMessage(omnetpp::cMessage *msg) override;
     virtual void refreshDisplay() const override;
+    virtual void finish() override;
 
   public:
     SCMNode();
