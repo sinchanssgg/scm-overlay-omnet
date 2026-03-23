@@ -16,6 +16,8 @@ This repository contains:
 - Architecture and design walkthrough: `docs/design.md`
 - Verified current-state audit: `docs/current-state.md`
 - Result schema notes: `docs/results/README.md`
+- Artifact evaluator playbook: `docs/artifact-evaluation.md`
+- Submission/DOI packaging checklist: `docs/submission-packaging.md`
 
 ## First-time Setup
 
