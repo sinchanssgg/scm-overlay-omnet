@@ -46,6 +46,10 @@ Config groups include:
 - Fault scenarios (`FaultDistance`, `FaultBeta`, `FaultParent`)
 - Comparison placeholders (`GargGrosu`, `Byrenheid`)
 
+Current behavior note:
+- Active runs in `scripts/run_experiments.sh` currently execute `BaselineCBT`, `FaultDistance`, `BaselineER`, and `FaultBeta`.
+- These active scenarios use global `network = SCMNetwork` unless explicitly overridden in scenario config.
+
 ## 3. Data and Topology Preparation
 
 Location: `scripts/preprocess`
@@ -55,6 +59,11 @@ Location: `scripts/preprocess`
 - `process_twitch.py`: CSV edge list preprocessing and optional sampling
 
 These scripts are intended to create topology inputs before simulation runs.
+
+Current integration note:
+- CBT/ER preprocess scripts generate edge files into the run directory.
+- The default active network (`SCMNetwork`) currently uses random in-NED connectivity and does not consume those generated files directly.
+- Twitch preprocessing exists but is not part of the default run matrix.
 
 ## 4. Experiment Orchestration
 
@@ -70,11 +79,8 @@ These scripts are intended to create topology inputs before simulation runs.
 
 ### 4.2 Docker Path
 
-`docker/docker-compose.yml` defines service stages:
-
-1. `simulation`
-2. `analysis`
-3. `visualization`
+`docker/docker-compose.yml` currently defines one `simulation` service that invokes `scripts/run_experiments.sh --skip-sim-build`.
+That script performs simulation + analysis + plotting in sequence.
 
 `docker/Dockerfile` builds and packages the simulation environment.
 
@@ -111,4 +117,4 @@ make
 
 The design intent is coherent: generate topology -> run scenario matrix -> analyze and plot results.
 
-However, the current implementation has unresolved integration issues (build rules, NED/module consistency, message API mismatches, and incomplete methods). Those are tracked in `docs/current-state.md`.
+Current implementation is runnable through the scripted pipeline, but there are still integration gaps between documented topology intent and the default scenario/network wiring. See `docs/current-state.md` for current verified gaps.

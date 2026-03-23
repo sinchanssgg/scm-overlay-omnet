@@ -1,70 +1,52 @@
 # Current State and Known Gaps
 
-This file captures the verified repository state as of the latest documentation pass.
+This file captures the verified repository state from a source-level documentation audit.
 
-## 1. What Is Working Structurally
+## 1. Verified Working Structure
 
-- Repository layout clearly separates simulation, preprocessing, orchestration, and analysis.
-- OMNeT++ dependency is now sourced from upstream via submodule at `third_party/omnetpp`.
-- Docker and native workflows are both represented.
-- Scenario naming and intent are visible in `omnetpp/simulations/omnetpp.ini`.
+- Repository layout clearly separates simulation, preprocessing, orchestration, and analysis concerns.
+- OMNeT++ is consumed via Git submodule at `third_party/omnetpp`.
+- `scripts/run_experiments.sh` provides the canonical end-to-end path: topology preprocessing, simulation runs, analysis, and plotting.
+- Docker compose uses the same script-based workflow (`--skip-sim-build`), keeping execution paths aligned.
 
-### 1.1 Version Tracking Policy
+## 2. Verified Gaps (Current)
 
-- Keep OMNeT++ pinned to a known tag/commit for reproducible runs.
-- Monitor upstream releases separately and upgrade intentionally.
-- Use `scripts/check_omnetpp_version.sh` for quick pinned-vs-latest visibility.
+### 2.1 Topology intent vs active runtime network selection
 
-## 2. Blocking Gaps Before End-to-End Execution
+- `omnetpp/simulations/omnetpp.ini` sets global `network = SCMNetwork`.
+- Active scenarios (`BaselineCBT`, `FaultDistance`, `BaselineER`, `FaultBeta`) therefore use `SCMNetwork` by default.
+- Dedicated NED networks (`CompleteBinaryTree`, `ErdosRenyi`, `TwitchNetwork`) exist but are not selected by the default run matrix.
 
-### 2.1 Build Rule Mismatch
+### 2.2 Preprocessing artifacts are not fully wired into active topology behavior
 
-- `omnetpp/simulations/Makefile` expects `src/main.cc`
-- Actual file is `src/Main.cc`
-- Result: `make` fails immediately
+- `run_experiments.sh` generates `cbt_edges.txt` and `er_edges.txt`.
+- The active `SCMNetwork` currently creates random links directly in NED and does not consume those generated edge files.
 
-### 2.2 Missing NED File
+### 2.3 Twitch scenario is not part of default pipeline
 
-- Several network NED files import `SCMFaultInjector.ned`
-- That file is not present in `omnetpp/simulations/networks`
+- Twitch configs exist in `omnetpp.ini`, and Twitch initializer code exists.
+- Default `run_experiments.sh` matrix does not execute Twitch scenarios.
+- `BaselineTwitch` expects `twitch_edges.txt` in result directory, but default pipeline does not generate it.
 
-### 2.3 Gate Name Inconsistency
+### 2.4 Legacy Docker entrypoint drift
 
-- `SCMNode.ned` declares gates `in[]` and `out[]`
-- Other network definitions and C++ logic use `port` gate naming
-
-### 2.4 Message API Inconsistency
-
-- `SCMMessages.h` defines a limited enum set
-- `SCMNode.cc` references additional message types not defined there
-- `SCMNode.h` references `SCMControlMessage::MsgType`, which does not match current enum naming
-
-### 2.5 Incomplete C++ Implementations
-
-- `SCMNode.h` declares many methods not implemented in `SCMNode.cc`
-- This prevents successful linking/compilation
-
-### 2.6 Potential Duplicate Module Definition
-
-- `SCMNode` module definition appears in both `Main.cc` and `SCMNode.cc`
-
-### 2.7 Runtime Path/Output Assumption Issues
-
-- Simulation execution uses `-n ../networks` while networks are in the local `networks/` directory under `omnetpp/simulations`
-- Result processing currently scans only top-level `*.vec` files while run scripts emit per-scenario subdirectories
+- `docker/entrypoint.sh` is not the path used by current compose flow.
+- It contains path assumptions (`-n ../networks`) that differ from active `run_experiments.sh` usage.
 
 ## 3. Documentation Quality Status
 
-- `README.md`, `docs/setup.md`, and `docs/design.md` are now structured and populated.
-- `requirements.txt` remains empty and should be aligned with actual Python imports in a later cleanup.
+- `README.md`, `docs/setup.md`, `docs/design.md`, and this file were aligned to current executable behavior in the latest pass.
+- `docs/results/README.md` now documents concrete output artifacts and CSV schema.
 
-## 4. Recommended Bring-Up Sequence
+## 4. Recommended Bring-up Sequence
 
-1. Fix simulation build and NED consistency issues listed above
-2. Validate a single baseline scenario from CLI
-3. Validate analysis and visualization outputs for that run
-4. Then execute full scenario matrix locally or via Docker
+1. `git submodule update --init --recursive`
+2. `uv sync`
+3. Build OMNeT++ (native path) if needed
+4. Run `./scripts/run_experiments.sh --quick`
+5. Run `./scripts/run_experiments.sh`
+6. Verify output artifacts (`analysis.csv`, `metrics_plot.png`)
 
 ## 5. Scope Note
 
-This file is intentionally focused on objective current-state behavior and blockers, not on algorithmic correctness claims.
+This document tracks integration and execution-state observations, not algorithmic proof/correctness claims.
