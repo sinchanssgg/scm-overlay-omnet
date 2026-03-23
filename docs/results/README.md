@@ -8,6 +8,7 @@ The execution pipeline writes raw artifacts under `$RESULT_DIR`.
 
 - Local default: `RESULT_DIR=results/<timestamp>`
 - Docker compose in this repo: `RESULT_DIR=/workspace/results/latest` in-container (mapped to `results/latest` on the host)
+- If the default `results/` location is not writable, the run script falls back to `${XDG_STATE_HOME:-$HOME/.local/state}/scm-overlay-omnet/results/<timestamp>`
 
 Expected layout under `$RESULT_DIR`:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ run outputs such as `.vec`/`.sca`)
@@ -28,7 +29,7 @@ Expected layout under `$RESULT_DIR`:
 
 `scripts/visualization/plot_metrics.py` renders two bar charts:
 
-- Maximum stabilization time per scenario (`time_max`)
+- Latest observed simulation time per scenario (`time_max`)
 - Standard deviation of aggregated vector values per scenario (`value_std`, currently stabilization-time values from `nodeStableTime`)
 
 ## Suggested usage

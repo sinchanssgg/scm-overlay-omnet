@@ -27,6 +27,7 @@ This file captures the verified repository state from a source-level documentati
 - Twitch configs exist in `omnetpp.ini`, and Twitch initializer code exists.
 - Default `run_experiments.sh` matrix does not execute Twitch scenarios.
 - `BaselineTwitch` expects `twitch_edges.txt` in result directory, but default pipeline does not generate it.
+- `scripts/preprocess/process_twitch.py` defaults to `twitch_processed.txt`; use `--output twitch_edges.txt` or adjust `omnetpp.ini` to avoid filename mismatch.
 
 ### 2.4 Legacy Docker entrypoint drift
 

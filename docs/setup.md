@@ -124,6 +124,8 @@ Expected output location:
 	- `scripts/preprocess/process_twitch.py`
 
 The Twitch network mode expects an edge file path and large node count defaults; validate paths and memory constraints before running that scenario.
+- `BaselineTwitch` expects `${resultdir}/twitch_edges.txt`.
+- `scripts/preprocess/process_twitch.py` defaults to `twitch_processed.txt`, so use `--output twitch_edges.txt` (or update `omnetpp.ini` to match your chosen filename).
 
 ## 7. First Practical Bring-Up Order
 
