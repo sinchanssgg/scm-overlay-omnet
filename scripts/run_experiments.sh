@@ -29,7 +29,7 @@ Options:
 Environment:
     RESULT_DIR           Custom result directory (default: results/<timestamp>)
     SCM_RANDOM_SEED      Seed for deterministic preprocessing/simulation (default: 1337)
-    MWE_NUM_NODES        Node count for --mwe mode (default: 1024)
+    MWE_NUM_NODES        Node count for --mwe mode (default: 1023)
 EOF
 }
 
@@ -131,7 +131,9 @@ CBT_NODES=31
 ER_NODES=50
 ER_PROB=0.2
 if [[ "$MWE_MODE" -eq 1 ]]; then
-    CBT_NODES="${MWE_NUM_NODES:-1024}"
+    CBT_NODES="${MWE_NUM_NODES:-1023}"
+    ER_NODES="${MWE_NUM_NODES:-1023}"
+    ER_PROB=0.02
 elif [[ "$CLAIM_A_MODE" -eq 1 ]]; then
     if [[ "$QUICK_MODE" -eq 1 ]]; then
         CBT_NODES=63
@@ -163,13 +165,20 @@ fi
 
 cd "$SIM_DIR"
 if [[ "$MWE_MODE" -eq 1 ]]; then
-    MWE_NUM_NODES="${MWE_NUM_NODES:-1024}"
+    MWE_NUM_NODES="${MWE_NUM_NODES:-1023}"
     if ! [[ "$MWE_NUM_NODES" =~ ^[0-9]+$ ]] || [[ "$MWE_NUM_NODES" -lt 8 ]]; then
         echo "ERROR: MWE_NUM_NODES must be an integer >= 8 (got: $MWE_NUM_NODES)" >&2
         exit 2
     fi
     export MWE_NUM_NODES
-    configs=(MWE)
+    configs=(
+        MWE_CBT_Baseline
+        MWE_ER_Baseline
+        MWE_Twitch_Baseline
+        MWE_CBT_L1 MWE_CBT_L2 MWE_CBT_L3 MWE_CBT_L4 MWE_CBT_L5 MWE_CBT_L6 MWE_CBT_L7 MWE_CBT_L8 MWE_CBT_L9
+        MWE_ER_L1 MWE_ER_L2 MWE_ER_L3 MWE_ER_L4 MWE_ER_L5 MWE_ER_L6 MWE_ER_L7 MWE_ER_L8 MWE_ER_L9
+        MWE_Twitch_L1 MWE_Twitch_L2 MWE_Twitch_L3 MWE_Twitch_L4 MWE_Twitch_L5 MWE_Twitch_L6 MWE_Twitch_L7 MWE_Twitch_L8 MWE_Twitch_L9
+    )
 elif [[ "$CLAIM_A_MODE" -eq 1 ]]; then
     if [[ "$QUICK_MODE" -eq 1 ]]; then
         configs=(
@@ -259,7 +268,7 @@ done
 if [[ "$MWE_MODE" -eq 1 ]]; then
     mwe_root="$RESULT_DIR/mwe"
     mkdir -p "$mwe_root"
-    uv run python "$SCRIPT_DIR/analysis/build_mwe_outputs.py" "$RESULT_DIR/MWE" "$mwe_root"
+    uv run python "$SCRIPT_DIR/analysis/build_mwe_outputs.py" "$RESULT_DIR" "$mwe_root"
 else
     # Process results
     uv run python "$SCRIPT_DIR/analysis/process_results.py" "$sim_root"

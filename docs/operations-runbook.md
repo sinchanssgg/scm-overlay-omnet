@@ -24,7 +24,7 @@ This runbook provides practical guidance for safe execution sizing and headless 
 
 ### Large profile (artifact-style focused runs)
 - MWE large:
-  - `RESULT_DIR=/tmp/scm-mwe MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe`
+  - `RESULT_DIR=/tmp/scm-mwe ./scripts/run_experiments.sh --mwe`
 - Figure generation:
   - `uv run python scripts/analysis/build_fig2_outputs.py /tmp/scm-fig2 --result-root /tmp/scm-quick`
   - `uv run python scripts/analysis/build_fig3_outputs.py /tmp/scm-fig3 --cbt-state-dir /tmp/scm-quick/BaselineCBT --twitch-state-dir /tmp/scm-quick/BaselineTwitch --twitch-nodes 50`
@@ -64,7 +64,7 @@ GUI is optional and not required for artifact checks. Prefer headless unless vis
 | `uv: command not found` | uv not installed | Install uv, then run `uv sync` |
 | `OMNeT++ not found` | Submodule/environment not initialized | Run submodule init and ensure `third_party/omnetpp/setenv` exists |
 | `.vec` not found in result dir | Scenario output path mismatch or run failure | Re-run with clean `RESULT_DIR`, verify non-zero simulation output |
-| Parent-attack line plot missing some topology lines | Missing baseline/parent scenario pair for that topology | Ensure default full matrix ran and verify `Baseline*` + `FaultParent*` scenario directories exist |
+| MWE level-sweep plot missing lines/levels | Missing MWE baseline/level scenario outputs for a topology | Re-run `--mwe` and verify `MWE_<Topo>_Baseline` and `MWE_<Topo>_L1..L9` directories exist |
 | OOM / very slow run | Profile too large for machine | Use small/medium profile or lower node counts first |
 
 ## 6) Runtime safety notes
