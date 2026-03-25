@@ -22,6 +22,7 @@ class SCMFaultInjector : public omnetpp::cSimpleModule {
     int campaignSeed;
     int campaignRound;
     int maxCampaignDepth;
+    int campaignTargetDepth;
     int parentOffset;
     bool strictDepthCampaign;
     bool sendFaultNotify;
