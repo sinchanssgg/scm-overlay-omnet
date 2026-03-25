@@ -229,13 +229,7 @@ void SCMNode::handleStabilization()
 
     // Rule 3: Error Propagation (Become FAULTY if inconsistent)
     if (status == STABLE && (notLocallyConsistent() || lostStableSupport())) {
-        status = FAULTY;
-        lastFaultTime = simTime().dbl();
-        sizeSig.clear();
-        betaSig.clear();
-        // Reset Garg-Grosu convergence so re-convergence is tracked after recovery
-        ggConverged = false;
-        prevBeta = NAN;
+        transitionToFaulty();
         bubble("DETECTED INCONSISTENCY");
         if (algorithmKind != AlgorithmKind::GARG_GROSU) {
             notifyChildren(SCMControlMessage::FAULT_NOTIFY);
@@ -292,16 +286,30 @@ void SCMNode::handleStabilization()
 
     // --- Garg-Grosu convergence detection ---
     // Per Garg-Grosu: a node declares local convergence when its beta value
-    // is identical across two consecutive rounds.
-    roundCounter++;
-    if (algorithmKind == AlgorithmKind::GARG_GROSU &&
-        status == STABLE && !ggConverged) {
-        if (!std::isnan(prevBeta) && fabs(beta - prevBeta) < 1e-9) {
+    // is identical across two consecutive rounds. Only track while STABLE
+    // to avoid counting rounds spent in FAULTY/RECOVERING.
+    if (algorithmKind == AlgorithmKind::GARG_GROSU && status == STABLE) {
+        roundCounter++;
+        if (!ggConverged && !std::isnan(prevBeta) && fabs(beta - prevBeta) < 1e-6) {
             ggConverged = true;
             emit(stabilizationTimeSignal, (double)roundCounter);
         }
+        prevBeta = beta;
     }
-    prevBeta = beta;
+}
+
+// ─── State transition helpers ────────────────────────────────────────
+
+void SCMNode::transitionToFaulty()
+{
+    status = FAULTY;
+    lastFaultTime = simTime().dbl();
+    sizeSig.clear();
+    betaSig.clear();
+    // Reset Garg-Grosu convergence so re-convergence is tracked after recovery
+    ggConverged = false;
+    prevBeta = NAN;
+    roundCounter = 0;
 }
 
 // ─── Consistency checks ─────────────────────────────────────────────
@@ -505,13 +513,7 @@ void SCMNode::handleBetaUpdate(SCMControlMessage* msg)
 void SCMNode::handleFaultNotification(SCMControlMessage* msg)
 {
     if (status == STABLE) {
-        status = FAULTY;
-        lastFaultTime = simTime().dbl();
-        sizeSig.clear();
-        betaSig.clear();
-        // Reset Garg-Grosu convergence so re-convergence is tracked after recovery
-        ggConverged = false;
-        prevBeta = NAN;
+        transitionToFaulty();
         bubble("FAULT RECEIVED");
         notifyChildren(SCMControlMessage::FAULT_NOTIFY);
     }

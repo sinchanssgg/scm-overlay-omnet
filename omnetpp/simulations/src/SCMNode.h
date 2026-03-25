@@ -85,6 +85,9 @@ class SCMNode : public omnetpp::cSimpleModule {
     void handleProofRequest(SCMControlMessage* msg);
     void handleProofResponse(SCMControlMessage* msg);
 
+    // State transition helpers
+    void transitionToFaulty();
+
     // Recovery phase methods
     bool rejoinTree();
 
