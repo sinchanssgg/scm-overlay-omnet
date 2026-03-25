@@ -77,6 +77,8 @@ uv run python scripts/analysis/validate_outputs.py /tmp/scm-quick --require-colu
 
 This default run now executes full topology x fault coverage (CBT/ER/Twitch with all three fault types), plus each topology baseline.
 
+**Note on Twitch topology:** The default pipeline uses a 256-node synthetic ER random graph as a structural proxy for the Twitch social network. This keeps evaluation fast (~5 minutes total). The real SNAP Twitch dataset (168K nodes) can be substituted by running `scripts/preprocess/process_twitch.py` manually — see `docs/current-state.md` section 2.3 for instructions.
+
 ## 5) Environment/resource guidance
 
 - OS: Linux (validated on Ubuntu-based environments)
