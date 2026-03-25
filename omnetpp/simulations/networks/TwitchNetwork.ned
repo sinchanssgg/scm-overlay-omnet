@@ -8,14 +8,18 @@ network TwitchNetwork
     parameters:
         string edgeFilePath;  // Set via omnetpp.ini or --result-dir
         int numNodes @default(168114); // From Twitch dataset
+        double faultProbability @default(0);
+        double faultInterval @unit(s) @default(10s);
         @display("bgb=1000,800");
-    
+
     submodules:
         initializer: TwitchNetworkInitializer {
             edgeFilePath = parent.edgeFilePath;
         }
-        
+
         faultInjector: SCMFaultInjector {
+            faultProbability = parent.faultProbability;
+            interval = parent.faultInterval;
             @display("p=50,50");
         }
         
