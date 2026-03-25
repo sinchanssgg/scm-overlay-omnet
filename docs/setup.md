@@ -138,6 +138,10 @@ The Twitch network mode expects an edge file path and large node count defaults;
 3. Run one baseline scenario first: `./scripts/run_experiments.sh --quick`
 4. Run full pipeline: `./scripts/run_experiments.sh`
 5. Confirm outputs (`analysis.csv` and `metrics_plot.png`) exist in the result directory (`$RESULT_DIR`; see below)
+6. For top-priority MWE (`./scripts/run_experiments.sh --mwe`), confirm additional outputs under `$RESULT_DIR/mwe/`:
+   - `beta_increase_vs_level.png`
+   - `payment_increase_vs_level.png`
+   - `service_fraction_vs_level.png`
 
 ## 8. Expected Outputs and Validation
 
@@ -150,6 +154,12 @@ Expected layout:
 - Per-scenario simulator outputs under `$RESULT_DIR/<ConfigName>/`
 - Aggregated CSV: `$RESULT_DIR/analysis.csv`
 - Plot image: `$RESULT_DIR/metrics_plot.png`
+- For MWE path (`$RESULT_DIR/mwe/`):
+  - `analysis.csv`
+  - `metrics_plot.png`
+  - `beta_increase_vs_level.png`
+  - `payment_increase_vs_level.png`
+  - `service_fraction_vs_level.png`
 
 Helpful log markers:
 - `Found <N> .vec file(s)` (analysis step)

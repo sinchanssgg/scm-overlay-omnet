@@ -24,15 +24,18 @@ cd ../..
 ## 2) Minimum working example
 
 ```bash
-RESULT_DIR=/tmp/scm-mwe MWE_NUM_NODES=1024 ./scripts/run_experiments.sh --mwe
+RESULT_DIR=/tmp/scm-mwe ./scripts/run_experiments.sh --mwe
 ```
 
 Expected:
 - `/tmp/scm-mwe/mwe/analysis.csv`
 - `/tmp/scm-mwe/mwe/metrics_plot.png`
+- `/tmp/scm-mwe/mwe/beta_increase_vs_level.png`
+- `/tmp/scm-mwe/mwe/payment_increase_vs_level.png`
+- `/tmp/scm-mwe/mwe/service_fraction_vs_level.png`
 
 `analysis.csv` columns:
-- `node_id,num_users,subtree_size,beta,payment,status,proof_valid`
+- `topology,corruption_level,avg_beta_pct_increase,avg_payment_pct_increase,user_service_fraction`
 
 ## 3) Figure reproduction commands
 
@@ -61,10 +64,13 @@ Expected for each output directory:
 - `analysis.csv`
 - `metrics_plot.png`
 
-Default pipeline plotting objective (`metrics_plot.png`):
-- line graph with one curve per topology (CBT, ER, Twitch)
-- compares baseline vs parent-attack average beta
-- backed by `parent_attack_beta_summary.csv`
+Top-priority MWE plotting objective (`/tmp/scm-mwe/mwe/`):
+- three separate line plots, each with one curve per topology (CBT, ER, Twitch)
+- x-axis: SCM corruption level (1..9)
+- y-axis metrics:
+  - avg beta % increase
+  - avg payment % increase
+  - user service fraction [0,1]
 
 ## 4) Output contract checks
 

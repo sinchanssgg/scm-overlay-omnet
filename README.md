@@ -15,11 +15,11 @@ This repository contains:
 The primary artifact goal is to demonstrate, with executable evidence, that SCM behavior is evaluated consistently across topology and adversary dimensions.
 
 - Every topology (`CBT`, `ER`, `Twitch`) must be exercised under all three fault/adversary scenarios (`Distance`, `Beta`, `Parent`) in the default non-quick pipeline.
-- For parent-manipulation analysis, the default `metrics_plot.png` now emphasizes topology-comparative behavior:
-  - one line (curve) per topology
-  - baseline vs parent-attack average beta
-  - parent-attack represented by adversarial random node selection in the configured fault injector
-- The same run also emits `parent_attack_beta_summary.csv` with per-topology baseline beta, attack beta, and percent increase.
+- For top-priority MWE parent-manipulation analysis (`--mwe`):
+  - each topology (`CBT`, `ER`, `Twitch`) is run at `1023` nodes
+  - deterministic one-node-per-level parent-pointer corruption is applied for levels `1..9`
+  - the x-axis is SCM corruption level from algorithm state
+  - three required line plots are produced (each with three topology curves): beta % increase, payment % increase, and service fraction `[0,1]`
 
 ## Documentation Map
 
@@ -72,7 +72,6 @@ Optional:
 ./scripts/run_experiments.sh --skip-sim-build
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
 ./scripts/run_experiments.sh --mwe
-MWE_NUM_NODES=4096 ./scripts/run_experiments.sh --mwe
 ./scripts/run_experiments.sh --claim-b --quick
 ```
 
@@ -141,7 +140,6 @@ Expected layout:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ raw outputs such as `.vec`, `.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
-- `$RESULT_DIR/parent_attack_beta_summary.csv`
 
 For Figure 2 artifact output:
 - `results/fig2/analysis.csv`
@@ -160,8 +158,11 @@ For Figure 5 artifact output:
 For artifact Claim-1 MWE (`--mwe`), expected layout is:
 - `$RESULT_DIR/mwe/analysis.csv`
 - `$RESULT_DIR/mwe/metrics_plot.png`
+- `$RESULT_DIR/mwe/beta_increase_vs_level.png`
+- `$RESULT_DIR/mwe/payment_increase_vs_level.png`
+- `$RESULT_DIR/mwe/service_fraction_vs_level.png`
 
-`--mwe` defaults to `MWE_NUM_NODES=1024` and supports larger sizes (for example `2048` or `4096`) through environment override.
+`--mwe` defaults to `MWE_NUM_NODES=1023`.
 
 ## Repository Layout
 

@@ -14,10 +14,16 @@ Expected layout under `$RESULT_DIR`:
 - `$RESULT_DIR/<ConfigName>/...` (OMNeT++ run outputs such as `.vec`/`.sca`)
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
+- For MWE path (`$RESULT_DIR/mwe/`):
+  - `analysis.csv`
+  - `metrics_plot.png`
+  - `beta_increase_vs_level.png`
+  - `payment_increase_vs_level.png`
+  - `service_fraction_vs_level.png`
 
 ## `analysis.csv` schema
 
-`scripts/analysis/process_results.py` currently writes one row per scenario with:
+`scripts/analysis/process_results.py` (default non-MWE path) writes one row per scenario with:
 
 - `scenario`: Scenario name inferred from result subdirectory
 - `value_mean`: Mean across parsed vector values
@@ -25,12 +31,23 @@ Expected layout under `$RESULT_DIR`:
 - `value_count`: Number of parsed vector rows
 - `time_max`: Maximum simulation time observed in parsed vectors
 
+For MWE, `scripts/analysis/build_mwe_outputs.py` writes:
+
+- `topology`
+- `corruption_level`
+- `avg_beta_pct_increase`
+- `avg_payment_pct_increase`
+- `user_service_fraction`
+
 ## `metrics_plot.png`
 
-`scripts/visualization/plot_metrics.py` renders two bar charts:
+`scripts/visualization/plot_metrics.py` renders default non-MWE summary plots.
 
-- Latest observed simulation time per scenario (`time_max`)
-- Standard deviation of aggregated vector values per scenario (`value_std`, currently stabilization-time values from `nodeStableTime`)
+For MWE, `scripts/analysis/build_mwe_outputs.py` renders the required level-sweep line plots for:
+
+- Beta % increase vs corruption level
+- Payment % increase vs corruption level
+- User service fraction vs corruption level
 
 ## Suggested usage
 

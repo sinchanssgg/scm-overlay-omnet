@@ -38,16 +38,18 @@ This file captures the verified repository state from a source-level documentati
 - `--claim-b` now provides a dedicated algorithm comparison matrix (SCM/Garg-Grosu/Byrenheid) without changing default quick/full behavior.
 - `build_fig5_outputs.py` now reads `algorithm` and `topology` directly from simulation exports, removing scenario-name heuristic labeling.
 
-### 2.6 Default metrics plot semantics
+### 2.6 MWE metrics plot semantics
 
-- `scripts/visualization/plot_metrics.py` is now aligned with the parent-manipulation artifact objective.
-- `metrics_plot.png` is rendered as line curves with one line per topology (CBT, ER, Twitch), comparing:
-  - baseline average beta
-  - parent-attack average beta
-- The pipeline also emits `parent_attack_beta_summary.csv` with per-topology:
-  - `baseline_beta`
-  - `parent_attack_beta`
-  - `beta_pct_increase`
+- `--mwe` now targets the strict parent-manipulation level-sweep objective:
+  - all three topologies at 1023 nodes
+  - deterministic one-node-per-level parent corruption (levels 1..9)
+  - x-axis uses SCM corruption level from algorithm state
+- `scripts/analysis/build_mwe_outputs.py` writes:
+  - `analysis.csv` (`topology,corruption_level,avg_beta_pct_increase,avg_payment_pct_increase,user_service_fraction`)
+  - `metrics_plot.png` (composite 3-panel figure)
+  - `beta_increase_vs_level.png`
+  - `payment_increase_vs_level.png`
+  - `service_fraction_vs_level.png`
 
 ### 2.4 Legacy Docker entrypoint drift
 

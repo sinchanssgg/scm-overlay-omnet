@@ -27,6 +27,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Fail if analysis.csv has no data rows",
     )
+    parser.add_argument(
+        "--require-files",
+        default="",
+        help="Comma-separated list of additional required files in result_dir",
+    )
     return parser.parse_args()
 
 
@@ -58,10 +63,17 @@ def main() -> None:
     args = parse_args()
     result_dir = Path(args.result_dir)
     required_columns = [c.strip() for c in args.require_columns.split(",") if c.strip()]
+    required_files = [c.strip() for c in args.require_files.split(",") if c.strip()]
 
     try:
         validate_csv(result_dir / "analysis.csv", required_columns, args.require_non_empty)
         validate_png(result_dir / "metrics_plot.png")
+        for rel in required_files:
+            path = result_dir / rel
+            if not path.exists():
+                raise ValueError(f"Missing required file: {path}")
+            if path.suffix.lower() == ".png":
+                validate_png(path)
     except ValueError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         sys.exit(1)
