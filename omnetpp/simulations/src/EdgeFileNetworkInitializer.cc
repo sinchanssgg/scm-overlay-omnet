@@ -1,3 +1,8 @@
+/**
+ * @file EdgeFileNetworkInitializer.cc
+ * @brief Generic edge-file network initializer
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ */
 #include <fstream>
 #include <sstream>
 #include <string>

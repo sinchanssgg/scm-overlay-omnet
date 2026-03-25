@@ -1,3 +1,9 @@
+/**
+ * @file SCMNode.cc
+ * @brief SCM overlay node — stabilization rules, cost calculations, and cryptographic proofs
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #include "SCMNode.h"
 #include "SCMMessages.h"
 #include <algorithm>
@@ -21,7 +27,14 @@ Define_Module(SCMNode);
 
 SCMNode::SCMNode() : eckey(nullptr) {
     eckey = EC_KEY_new_by_curve_name(NID_secp256k1);
-    EC_KEY_generate_key(eckey);
+    if (!eckey) {
+        throw std::runtime_error("EC_KEY_new_by_curve_name failed — OpenSSL may not support secp256k1");
+    }
+    if (EC_KEY_generate_key(eckey) != 1) {
+        EC_KEY_free(eckey);
+        eckey = nullptr;
+        throw std::runtime_error("EC_KEY_generate_key failed");
+    }
 }
 
 SCMNode::~SCMNode() {
@@ -48,6 +61,11 @@ void SCMNode::initialize()
     // Register signal for stabilization metrics
     stabilizationTimeSignal = registerSignal("nodeStableTime");
     lastFaultTime = 0;
+
+    // Garg-Grosu convergence state
+    prevBeta = NAN;
+    ggConverged = false;
+    roundCounter = 0;
 
     // Clear crypto state
     sizeSig.clear();
@@ -86,8 +104,10 @@ void SCMNode::handleMessage(cMessage *msg)
         return;
     }
 
-    // Track stabilization time for metrics
-    if (status == STABLE) {
+    // Track stabilization time for metrics (only after a real fault occurred)
+    // Garg-Grosu uses round-count emission in handleStabilization() instead — Arannya Mukherjee
+    if (algorithmKind != AlgorithmKind::GARG_GROSU &&
+        status == STABLE && lastFaultTime > 0) {
         emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
     }
 
@@ -222,10 +242,7 @@ void SCMNode::handleStabilization()
 
     // Rule 3: Error Propagation (Become FAULTY if inconsistent)
     if (status == STABLE && (notLocallyConsistent() || lostStableSupport())) {
-        status = FAULTY;
-        lastFaultTime = simTime().dbl();
-        sizeSig.clear();
-        betaSig.clear();
+        transitionToFaulty();
         bubble("DETECTED INCONSISTENCY");
         if (algorithmKind != AlgorithmKind::GARG_GROSU) {
             notifyChildren(SCMControlMessage::FAULT_NOTIFY);
@@ -249,7 +266,10 @@ void SCMNode::handleStabilization()
             calculateAlpha();
             calculateBeta();
             payment = beta * numUsers;
-            emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
+            // Garg-Grosu uses beta-convergence detection (below), not fault-recovery timing — Arannya Mukherjee
+            if (algorithmKind != AlgorithmKind::GARG_GROSU && lastFaultTime > 0) {
+                emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
+            }
             bubble("REJOINED TREE");
         }
         return;
@@ -276,6 +296,33 @@ void SCMNode::handleStabilization()
         }
         bubble("PROPAGATING PROOF");
     }
+
+    // --- Garg-Grosu convergence detection --- — Arannya Mukherjee
+    // Per Garg-Grosu: a node declares local convergence when its beta value
+    // is identical across two consecutive rounds. Only track while STABLE
+    // to avoid counting rounds spent in FAULTY/RECOVERING.
+    if (algorithmKind == AlgorithmKind::GARG_GROSU && status == STABLE) {
+        roundCounter++;
+        if (!ggConverged && !std::isnan(prevBeta) && fabs(beta - prevBeta) < 1e-6) {
+            ggConverged = true;
+            emit(stabilizationTimeSignal, (double)roundCounter);
+        }
+        prevBeta = beta;
+    }
+}
+
+// ─── State transition helpers ────────────────────────────────────────
+
+void SCMNode::transitionToFaulty()
+{
+    status = FAULTY;
+    lastFaultTime = simTime().dbl();
+    sizeSig.clear();
+    betaSig.clear();
+    // Reset Garg-Grosu convergence so re-convergence is tracked after recovery — Arannya Mukherjee
+    ggConverged = false;
+    prevBeta = NAN;
+    roundCounter = 0;
 }
 
 // ─── Consistency checks ─────────────────────────────────────────────
@@ -479,10 +526,7 @@ void SCMNode::handleBetaUpdate(SCMControlMessage* msg)
 void SCMNode::handleFaultNotification(SCMControlMessage* msg)
 {
     if (status == STABLE) {
-        status = FAULTY;
-        lastFaultTime = simTime().dbl();
-        sizeSig.clear();
-        betaSig.clear();
+        transitionToFaulty();
         bubble("FAULT RECEIVED");
         notifyChildren(SCMControlMessage::FAULT_NOTIFY);
     }
@@ -533,7 +577,12 @@ std::vector<uint8_t> SCMNode::signMessage(const std::string& message)
            message.size(), hash);
 
     // ECDSA sign
-    unsigned int sigLen = ECDSA_size(eckey);
+    int sigLenSigned = ECDSA_size(eckey);
+    if (sigLenSigned <= 0) {
+        EV_WARN << "Node " << id << ": ECDSA_size failed" << endl;
+        return {};
+    }
+    unsigned int sigLen = (unsigned int)sigLenSigned;
     std::vector<uint8_t> sig(sigLen);
     if (ECDSA_sign(0, hash, SHA256_DIGEST_LENGTH, sig.data(), &sigLen, eckey) != 1) {
         EV_WARN << "Node " << id << ": ECDSA_sign failed" << endl;
@@ -714,6 +763,7 @@ std::vector<SCMNode*> SCMNode::getChildrenNodes()
 SCMNode* SCMNode::getNodeById(int nodeId)
 {
     cModule *network = getParentModule();
+    if (!network) return nullptr;
     cModule *mod = network->getSubmodule("node", nodeId);
     return dynamic_cast<SCMNode*>(mod);
 }

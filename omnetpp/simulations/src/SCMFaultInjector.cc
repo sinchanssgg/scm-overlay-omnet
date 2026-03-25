@@ -1,3 +1,9 @@
+/**
+ * @file SCMFaultInjector.cc
+ * @brief Fault injection — deterministic and probabilistic fault campaigns
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #include "SCMFaultInjector.h"
 #include "SCMNode.h"
 #include "SCMMessages.h"
@@ -25,9 +31,9 @@ int SCMFaultInjector::computeCbtDepthFromIndex(int nodeIndex) const
 void SCMFaultInjector::buildDepthBuckets(int numNodes, bool allowCbtFallback)
 {
     depthBuckets.clear();
+    cModule *network = getParentModule();
     int maxDepth = 0;
     std::vector<int> resolved(numNodes, -1);
-    cModule *network = getParentModule();
     for (int i = 0; i < numNodes; i++) {
         SCMNode *node = check_and_cast<SCMNode*>(network->getSubmodule("node", i));
         int depth = node->getLevel();
@@ -59,7 +65,12 @@ std::vector<int> SCMFaultInjector::selectDeterministicTargets() const
         if (depth == 0) {
             continue;  // Never corrupt root
         }
-        if (maxCampaignDepth >= 0 && depth > maxCampaignDepth) {
+        // campaignTargetDepth >= 0: corrupt ONLY at that exact depth
+        if (campaignTargetDepth >= 0 && depth != campaignTargetDepth) {
+            continue;
+        }
+        // campaignTargetDepth < 0: fall back to maxCampaignDepth range behavior
+        if (campaignTargetDepth < 0 && maxCampaignDepth >= 0 && depth > maxCampaignDepth) {
             continue;
         }
         if (campaignExactLevel >= 0 && depth != campaignExactLevel) {
@@ -186,6 +197,7 @@ void SCMFaultInjector::initialize()
     campaignSeed = par("campaignSeed").intValue();
     campaignRound = 0;
     maxCampaignDepth = par("maxCampaignDepth").intValue();
+    campaignTargetDepth = par("campaignTargetDepth").intValue();
     campaignExactLevel = par("campaignExactLevel").intValue();
     parentOffset = par("parentOffset").intValue();
     strictDepthCampaign = par("strictDepthCampaign").boolValue();
@@ -250,6 +262,13 @@ void SCMFaultInjector::injectFault()
     if (campaignMode == DETERMINISTIC_ONE_NODE_PER_DEPTH) {
         const char *networkName = network->getNedTypeName();
         bool cbtLike = std::string(networkName) == "CompleteBinaryTree";
+        if (!cbtLike && campaignTargetDepth < 0 && campaignExactLevel < 0) {
+            if (strictDepthCampaign) {
+                throw cRuntimeError("Deterministic depth campaign requires CompleteBinaryTree network; got %s", networkName);
+            }
+            EV_WARN << "Skipping deterministic depth campaign on non-CBT network " << networkName << endl;
+            return;
+        }
         buildDepthBuckets(numNodes, cbtLike);
         auto targets = selectDeterministicTargets();
         if (targets.empty()) {

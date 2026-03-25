@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Parse OMNeT++ vector output files and produce per-scenario metrics."""
+"""Parse OMNeT++ vector output files and produce per-scenario metrics.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+"""
 import pandas as pd
 from pathlib import Path
 import sys

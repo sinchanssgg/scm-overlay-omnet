@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate artifact output contracts for analysis CSV and metrics plot."""
+"""Validate artifact output contracts for analysis CSV and metrics plot.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 from __future__ import annotations
 
 import argparse

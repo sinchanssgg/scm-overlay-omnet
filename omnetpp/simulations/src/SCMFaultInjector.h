@@ -1,3 +1,9 @@
+/**
+ * @file SCMFaultInjector.h
+ * @brief Fault injection module class declaration
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #ifndef SCMFAULTINJECTOR_H
 #define SCMFAULTINJECTOR_H
 
@@ -23,6 +29,7 @@ class SCMFaultInjector : public omnetpp::cSimpleModule {
     int campaignSeed;
     int campaignRound;
     int maxCampaignDepth;
+    int campaignTargetDepth;
     int campaignExactLevel;
     int parentOffset;
     bool strictDepthCampaign;

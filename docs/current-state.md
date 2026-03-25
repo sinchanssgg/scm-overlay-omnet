@@ -31,6 +31,7 @@ This file captures the verified repository state from a source-level documentati
 - Twitch baseline/fault scenarios are now part of the default matrix.
 - `run_experiments.sh` generates a deterministic `twitch_edges.txt` input and copies it to each scenario result directory.
 - `BaselineTwitch` consumes `${resultdir}/twitch_edges.txt` consistently.
+- **Note:** The `twitch_edges.txt` file is a synthetic Erdos-Renyi random graph (256 nodes, p=0.02), NOT the real SNAP Twitch dataset (168K nodes). This is a deliberate simplification for evaluation speed. The `scripts/preprocess/process_twitch.py` script exists for preprocessing the real dataset but is not called by the pipeline. To use real Twitch data, download `large_twitch_edges.csv` from [SNAP](https://snap.stanford.edu/data/twitch-social-networks.html) and run `process_twitch.py --input large_twitch_edges.csv --output twitch_edges.txt --sample 0.006 --seed 1337` for a ~1023-node subsample.
 
 ### 2.5 Figure-5 algorithm comparison path
 

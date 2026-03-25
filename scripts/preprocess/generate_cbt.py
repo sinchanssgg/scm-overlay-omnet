@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""Generate Complete Binary Tree edge-list files.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 import argparse
 
 

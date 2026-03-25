@@ -77,15 +77,19 @@ uv run python scripts/analysis/process_results.py results/latest
 ### 3.1 Build OMNeT++
 
 ```bash
+# Install required build tools (Ubuntu/Debian)
+sudo apt-get install build-essential pkg-config bison flex libssl-dev
+
 cd third_party/omnetpp
 source setenv
-./configure
+./configure WITH_QTENV=no WITH_OSG=no
 make -j$(nproc)
 ```
 
 Notes:
 - You must source `setenv` (do not execute it directly).
-- If Qt/GUI dependencies are unavailable, OMNeT++ can be configured for command-line-only workflows by disabling Qtenv in `configure.user` and re-running configure.
+- `WITH_QTENV=no` and `WITH_OSG=no` skip Qt6 and OpenSceneGraph GUI dependencies. This project runs headless via Cmdenv — no GUI is needed.
+- If you see errors about missing `pkg-config`, `bison`, or `flex`, install them with `apt-get install` as shown above.
 
 ### 3.2 Build SCM Simulation Project
 

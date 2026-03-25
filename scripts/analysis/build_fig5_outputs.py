@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build Figure-5 convergence outputs from simulation node-state + vectors."""
+"""Build Figure-5 convergence outputs from simulation node-state + vectors.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+"""
 from __future__ import annotations
 
 import argparse
@@ -66,19 +70,32 @@ def normalize_topology(topology: str) -> str:
 
 
 def latest_stabilization_time(scenario_dir: Path) -> float:
-    times: list[float] = []
+    """Return the maximum convergence metric across all .vec files in a scenario.
+
+    The signal value represents:
+    - For SCM/Byrenheid: simTime() - lastFaultTime (seconds from fault to recovery)
+    - For Garg-Grosu: discrete round count when beta stabilized
+
+    We read the signal *value* (not the emission timestamp) because it carries
+    the semantically correct metric for each algorithm variant.
+    """
+    values: list[float] = []
     for vec in scenario_dir.glob("*.vec"):
         df = parse_vec_file(vec)
         if df.empty:
             continue
         stable = df[df["signal"] == "nodeStableTime"]
-        if stable.empty:
-            times.append(float(df["time"].max()))
-        else:
-            times.append(float(stable["time"].max()))
-    if not times:
-        raise ValueError(f"No usable vector data found in {scenario_dir}")
-    return float(sum(times) / len(times))
+        if not stable.empty:
+            values.append(float(stable["value"].max()))
+    if not values:
+        import sys
+        print(
+            f"WARN: No nodeStableTime signals in {scenario_dir.name}; "
+            f"using NaN for rounds_to_converge",
+            file=sys.stderr,
+        )
+        return float("nan")
+    return float(max(values))
 
 
 def build_analysis(result_root: Path) -> pd.DataFrame:

@@ -1,3 +1,7 @@
+// @file SCMNode.ned
+// @brief SCM overlay node module with configurable algorithm variant
+// Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+// Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 
 simple SCMNode {
     parameters:

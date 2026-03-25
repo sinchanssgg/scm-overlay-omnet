@@ -1,3 +1,9 @@
+/**
+ * @file SCMNode.h
+ * @brief SCM overlay node class declaration
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #ifndef SCMNODE_H
 #define SCMNODE_H
 
@@ -46,6 +52,11 @@ class SCMNode : public omnetpp::cSimpleModule {
     simsignal_t stabilizationTimeSignal;
     double lastFaultTime;
 
+    // Garg-Grosu convergence detection (compare beta across consecutive rounds)
+    double prevBeta;
+    bool ggConverged;
+    int roundCounter;
+
     // Cryptographic state variables
     EC_KEY *eckey;  // Elliptic curve key pair
     std::vector<uint8_t> sizeSig;  // Signature of subtreeSize
@@ -79,6 +90,9 @@ class SCMNode : public omnetpp::cSimpleModule {
     void handleFaultNotification(SCMControlMessage* msg);
     void handleProofRequest(SCMControlMessage* msg);
     void handleProofResponse(SCMControlMessage* msg);
+
+    // State transition helpers
+    void transitionToFaulty();
 
     // Recovery phase methods
     bool rejoinTree();

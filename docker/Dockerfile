@@ -1,3 +1,7 @@
+# Dockerfile — Multi-stage build for SCM simulation
+# Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+# Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+
 # Build stage
 FROM omnetpp/omnetpp:u22.04-6.0 AS builder
 
@@ -10,7 +14,7 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /uvx /usr/local/bin/
 
 WORKDIR /workspace
 COPY pyproject.toml uv.lock ./
@@ -37,7 +41,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv in runtime stage
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.1 /uv /uvx /usr/local/bin/
 
 # Copy only required runtime artifacts
 WORKDIR /workspace
