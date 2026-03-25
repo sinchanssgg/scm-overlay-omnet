@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Generate parent-attack topology line plots from per-scenario node-state exports."""
+"""Generate parent-attack topology line plots from per-scenario node-state exports.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+"""
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")  # Non-interactive backend (works headless / SSH)

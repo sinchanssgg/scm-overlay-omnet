@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# check_omnetpp_version.sh — Compare pinned submodule vs upstream OMNeT++ tags
+# Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

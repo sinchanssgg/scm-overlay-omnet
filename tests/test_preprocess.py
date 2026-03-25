@@ -1,3 +1,7 @@
+"""Unit tests for preprocessing scripts (CBT, ER generators).
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 import subprocess
 import tempfile
 import unittest

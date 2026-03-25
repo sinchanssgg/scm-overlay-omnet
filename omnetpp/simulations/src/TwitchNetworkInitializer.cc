@@ -1,3 +1,9 @@
+/**
+ * @file TwitchNetworkInitializer.cc
+ * @brief Twitch network initializer — builds topology from edge file
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #include <fstream>
 #include <sstream>
 #include <string>

@@ -1,3 +1,9 @@
+/**
+ * @file SCMNode.h
+ * @brief SCM overlay node class declaration
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #ifndef SCMNODE_H
 #define SCMNODE_H
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build Figure-5 convergence outputs from simulation node-state + vectors."""
+"""Build Figure-5 convergence outputs from simulation node-state + vectors.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+"""
 from __future__ import annotations
 
 import argparse

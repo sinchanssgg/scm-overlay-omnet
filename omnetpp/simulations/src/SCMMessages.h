@@ -1,3 +1,9 @@
+/**
+ * @file SCMMessages.h
+ * @brief SCM control message types for inter-node communication
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #ifndef SCMMESSAGES_H
 #define SCMMESSAGES_H
 

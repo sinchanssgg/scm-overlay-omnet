@@ -1,3 +1,7 @@
+// @file ErdosRenyi.ned
+// @brief Erdos-Renyi random graph network topology for SCM simulation
+// Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+// Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 
 network ErdosRenyi
 {

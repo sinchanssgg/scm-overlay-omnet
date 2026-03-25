@@ -1,3 +1,9 @@
+/**
+ * @file SCMFaultInjector.h
+ * @brief Fault injection module class declaration
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #ifndef SCMFAULTINJECTOR_H
 #define SCMFAULTINJECTOR_H
 

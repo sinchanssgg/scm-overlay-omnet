@@ -1,3 +1,6 @@
+# .gitattributes — Line ending and binary file rules
+# Author: Arannya Mukherjee <arannya@adhrith.ai>
+
 # Force LF line endings for all text files, regardless of OS
 * text=auto eol=lf
 

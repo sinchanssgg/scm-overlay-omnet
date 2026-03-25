@@ -1,3 +1,7 @@
+# docker-compose.yml — Orchestration for SCM simulation container
+# Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+# Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+
 services:
   simulation:
     image: scm-overlay-omnet:local
