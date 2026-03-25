@@ -50,21 +50,13 @@ jobs:
             scm-overlay-omnet:ci \
             /bin/bash -lc "cd /workspace && ./scripts/run_experiments.sh --skip-sim-build"
 
-      - name: Generate analysis+plot smoke artifact in container
+      - name: Validate default pipeline outputs
         run: |
           docker run --rm \
             -v "$RUNNER_TEMP/scm-results:/tmp/results" \
             scm-overlay-omnet:ci \
             /workspace/.venv/bin/python \
-            /workspace/scripts/analysis/build_fig2_outputs.py /tmp/results/fig2-smoke --result-root /tmp/results
-
-      - name: Validate quick output artifacts
-        run: |
-          docker run --rm \
-            -v "$RUNNER_TEMP/scm-results:/tmp/results" \
-            scm-overlay-omnet:ci \
-            /workspace/.venv/bin/python \
-            /workspace/scripts/analysis/validate_outputs.py /tmp/results/fig2-smoke --require-columns topology,depth,avg_beta_pct_increase,avg_payment_pct_increase,user_fraction_receiving_service --require-non-empty
+            /workspace/scripts/analysis/validate_outputs.py /tmp/results --require-columns scenario,value_mean,value_std,value_count,time_max --require-non-empty
 
       - name: Validate claim-b fig5 smoke output
         run: |
