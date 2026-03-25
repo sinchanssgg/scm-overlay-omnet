@@ -1,3 +1,7 @@
+// @file CompleteBinaryTree.ned
+// @brief Complete Binary Tree network topology for SCM simulation
+// Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+// Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 
 network CompleteBinaryTree
 {

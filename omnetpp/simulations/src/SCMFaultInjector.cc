@@ -1,3 +1,9 @@
+/**
+ * @file SCMFaultInjector.cc
+ * @brief Fault injection — deterministic and probabilistic fault campaigns
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #include "SCMFaultInjector.h"
 #include "SCMNode.h"
 #include "SCMMessages.h"

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""Generate Erdos-Renyi random graph edge-list files.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 import argparse
 import random
 

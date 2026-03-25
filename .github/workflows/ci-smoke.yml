@@ -1,3 +1,7 @@
+# ci-smoke.yml — CI workflow for preprocessing tests and Docker smoke tests
+# Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+# Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+
 name: ci-smoke
 
 on:

@@ -1,3 +1,7 @@
+// @file SCMNetwork.ned
+// @brief Core SCM overlay network with random mesh connections
+// Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+// Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 
 network SCMNetwork
 {

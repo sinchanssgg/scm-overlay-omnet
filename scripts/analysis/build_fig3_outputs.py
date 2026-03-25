@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build Figure-3 proof-size outputs from real simulation state exports."""
+"""Build Figure-3 proof-size outputs from real simulation state exports.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 from __future__ import annotations
 
 import argparse
@@ -34,6 +37,13 @@ def measured_scm_proof_size(df: pd.DataFrame) -> float:
 
 
 def estimate_garg_grosu_size(df: pd.DataFrame) -> float:
+    """Analytically derived from Garg-Grosu protocol specification.
+
+    Garg-Grosu uses chained ECDSA signatures (one per hop from node to root).
+    Each hop contributes ~72 bytes (ECDSA-secp256k1 DER signature) plus ~64
+    bytes of metadata (node ID, level, beta value). Total grows linearly with
+    path length (= node depth in the tree).
+    """
     depths = df["level"].astype(int).clip(lower=1)
     per_hop_sig = 72.0
     metadata = 64.0
@@ -78,8 +88,11 @@ def build_analysis(cbt_dir: Path, twitch_dir: Path, twitch_nodes: int) -> pd.Dat
 
 def plot_fig3(df: pd.DataFrame, out_path: Path) -> None:
     plt.figure(figsize=(8, 6))
+    # Rename Garg-Grosu to indicate analytical derivation
+    df = df.copy()
+    df["method"] = df["method"].replace({"Garg-Grosu": "Garg-Grosu (analytical)"})
     sns.barplot(data=df, x="topology", y="avg_proof_size_bytes", hue="method")
-    plt.title("Average Proof Size: SCM vs Garg-Grosu")
+    plt.title("Average Proof Size: SCM (measured) vs Garg-Grosu (analytical)")
     plt.ylabel("Average proof size (bytes)")
     plt.xlabel("Topology")
     plt.grid(axis="y", alpha=0.25)

@@ -1,3 +1,7 @@
+// @file SCMFaultInjector.ned
+// @brief Fault injection module supporting distance, beta, and parent-switch faults
+// Author: Arannya Mukherjee <arannya@adhrith.ai>
+// Modified By: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
 
 simple SCMFaultInjector {
     parameters:

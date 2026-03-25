@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Build Claim-1 MWE outputs from per-node simulation state export."""
+"""Build Claim-1 MWE outputs from per-node simulation state export.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 from __future__ import annotations
 
 import argparse

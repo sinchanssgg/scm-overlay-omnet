@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build Figure-2 per-depth outputs from simulation node-state exports."""
+"""Build Figure-2 per-depth outputs from simulation node-state exports.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+"""
 from __future__ import annotations
 
 import argparse

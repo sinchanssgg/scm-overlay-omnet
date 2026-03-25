@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""Preprocess Twitch SNAP social network dataset.
+
+Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+"""
 import argparse
 import pandas as pd
 

@@ -1,3 +1,9 @@
+/**
+ * @file TopologyBuilders.cc
+ * @brief Topology builder helper classes (CBT, ER, Twitch)
+ * Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+ * Modified By: Arannya Mukherjee <arannya@adhrith.ai>
+ */
 #include <fstream>
 #include <sstream>
 #include <omnetpp.h>

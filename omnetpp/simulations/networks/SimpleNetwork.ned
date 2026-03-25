@@ -1,3 +1,7 @@
+// @file SimpleNetwork.ned
+// @brief Minimal two-node network for basic SCM testing
+// Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+// Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 
 network SimpleNetwork {
     submodules:

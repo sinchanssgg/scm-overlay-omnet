@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# run_experiments.sh — Master pipeline for SCM simulation experiments
+# Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
+# Modified By: Arannya Mukherjee <arannya@adhrith.ai>
 set -euo pipefail
 
 # Resolve project root relative to this script's location
