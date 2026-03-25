@@ -92,7 +92,9 @@ void SCMNode::handleMessage(cMessage *msg)
     }
 
     // Track stabilization time for metrics (only after a real fault occurred)
-    if (status == STABLE && lastFaultTime > 0) {
+    // Garg-Grosu uses round-count emission in handleStabilization() instead
+    if (algorithmKind != AlgorithmKind::GARG_GROSU &&
+        status == STABLE && lastFaultTime > 0) {
         emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
     }
 
@@ -231,6 +233,9 @@ void SCMNode::handleStabilization()
         lastFaultTime = simTime().dbl();
         sizeSig.clear();
         betaSig.clear();
+        // Reset Garg-Grosu convergence so re-convergence is tracked after recovery
+        ggConverged = false;
+        prevBeta = NAN;
         bubble("DETECTED INCONSISTENCY");
         if (algorithmKind != AlgorithmKind::GARG_GROSU) {
             notifyChildren(SCMControlMessage::FAULT_NOTIFY);
@@ -254,7 +259,10 @@ void SCMNode::handleStabilization()
             calculateAlpha();
             calculateBeta();
             payment = beta * numUsers;
-            emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
+            // Garg-Grosu uses beta-convergence detection (below), not fault-recovery timing
+            if (algorithmKind != AlgorithmKind::GARG_GROSU && lastFaultTime > 0) {
+                emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
+            }
             bubble("REJOINED TREE");
         }
         return;
@@ -501,6 +509,9 @@ void SCMNode::handleFaultNotification(SCMControlMessage* msg)
         lastFaultTime = simTime().dbl();
         sizeSig.clear();
         betaSig.clear();
+        // Reset Garg-Grosu convergence so re-convergence is tracked after recovery
+        ggConverged = false;
+        prevBeta = NAN;
         bubble("FAULT RECEIVED");
         notifyChildren(SCMControlMessage::FAULT_NOTIFY);
     }
