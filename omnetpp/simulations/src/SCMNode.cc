@@ -49,6 +49,11 @@ void SCMNode::initialize()
     stabilizationTimeSignal = registerSignal("nodeStableTime");
     lastFaultTime = 0;
 
+    // Garg-Grosu convergence state
+    prevBeta = NAN;
+    ggConverged = false;
+    roundCounter = 0;
+
     // Clear crypto state
     sizeSig.clear();
     betaSig.clear();
@@ -276,6 +281,19 @@ void SCMNode::handleStabilization()
         }
         bubble("PROPAGATING PROOF");
     }
+
+    // --- Garg-Grosu convergence detection ---
+    // Per Garg-Grosu: a node declares local convergence when its beta value
+    // is identical across two consecutive rounds.
+    roundCounter++;
+    if (algorithmKind == AlgorithmKind::GARG_GROSU &&
+        status == STABLE && !ggConverged) {
+        if (!std::isnan(prevBeta) && fabs(beta - prevBeta) < 1e-9) {
+            ggConverged = true;
+            emit(stabilizationTimeSignal, (double)roundCounter);
+        }
+    }
+    prevBeta = beta;
 }
 
 // ─── Consistency checks ─────────────────────────────────────────────
