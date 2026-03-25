@@ -8,6 +8,7 @@ simple SCMFaultInjector {
         int campaignMode @default(0);  // 0=probabilistic per-node, 1=deterministic one-node-per-depth
         int campaignSeed @default(1337);
         int maxCampaignDepth @default(-1); // -1 means all depths
+        int campaignTargetDepth @default(-1); // >=0: corrupt only at this exact depth; -1: use maxCampaignDepth range
         int parentOffset @default(1); // Used by deterministic parent-switch campaigns
         bool strictDepthCampaign @default(true);
         bool sendFaultNotify @default(true);

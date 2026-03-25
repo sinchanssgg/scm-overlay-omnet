@@ -10,6 +10,7 @@ QUICK_MODE=0
 MWE_MODE=0
 CLAIM_A_MODE=0
 CLAIM_B_MODE=0
+FIG2_MODE=0
 
 usage() {
     cat <<'EOF'
@@ -23,6 +24,7 @@ Options:
     --mwe                Run only the artifact minimum working example
     --claim-a            Run claim-matrix scaffold scenarios (PR-A)
     --claim-b            Run claim-matrix algorithm comparison scenarios (PR-B)
+    --fig2               Run Figure-2 per-depth experiment (depth x rep loop)
     --skip-sim-build     Skip simulation binary build step
     -h, --help           Show this help
 
@@ -30,6 +32,7 @@ Environment:
     RESULT_DIR           Custom result directory (default: results/<timestamp>)
     SCM_RANDOM_SEED      Seed for deterministic preprocessing/simulation (default: 1337)
     MWE_NUM_NODES        Node count for --mwe mode (default: 1024)
+    FIG2_REPEATS         Repetitions per depth for --fig2 (default: 10, paper: 100)
 EOF
 }
 
@@ -51,6 +54,10 @@ while [[ $# -gt 0 ]]; do
             CLAIM_B_MODE=1
             shift
             ;;
+        --fig2)
+            FIG2_MODE=1
+            shift
+            ;;
         --skip-sim-build)
             SKIP_SIM_BUILD=1
             shift
@@ -67,13 +74,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "$MWE_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 ) ]]; then
-    echo "ERROR: --mwe cannot be combined with --claim-a/--claim-b" >&2
+if [[ "$MWE_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 || "$FIG2_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --mwe cannot be combined with --claim-a/--claim-b/--fig2" >&2
     exit 2
 fi
 
 if [[ "$CLAIM_A_MODE" -eq 1 && "$CLAIM_B_MODE" -eq 1 ]]; then
     echo "ERROR: --claim-a and --claim-b cannot be combined" >&2
+    exit 2
+fi
+
+if [[ "$FIG2_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --fig2 cannot be combined with --claim-a/--claim-b" >&2
     exit 2
 fi
 
@@ -162,6 +174,70 @@ if [[ "$SKIP_SIM_BUILD" -eq 0 ]]; then
 fi
 
 cd "$SIM_DIR"
+
+# --- Figure 2: per-depth experiment ---
+if [[ "$FIG2_MODE" -eq 1 ]]; then
+    FIG2_REPEATS="${FIG2_REPEATS:-10}"
+    sim_root="$RESULT_DIR/fig2"
+
+    declare -a fig2_topos=("CBT" "ER" "Twitch")
+    declare -a fig2_baselines=("BaselineCBT" "BaselineER" "BaselineTwitch")
+    declare -a fig2_faults=("Fig2_CBT_FaultParent" "Fig2_ER_FaultParent" "Fig2_Twitch_FaultParent")
+
+    for idx in 0 1 2; do
+        topo="${fig2_topos[$idx]}"
+        baseline_cfg="${fig2_baselines[$idx]}"
+        fault_cfg="${fig2_faults[$idx]}"
+        topo_root="$sim_root/$topo"
+
+        echo "=== Fig2: $topo baseline ==="
+        baseline_dir="$topo_root/baseline"
+        mkdir -p "$baseline_dir"
+        cp -f "$RESULT_DIR/cbt_edges.txt" "$baseline_dir/cbt_edges.txt"
+        cp -f "$RESULT_DIR/er_edges.txt" "$baseline_dir/er_edges.txt"
+        cp -f "$RESULT_DIR/twitch_edges.txt" "$baseline_dir/twitch_edges.txt"
+        ./scm-simulations -u Cmdenv -c "$baseline_cfg" -n networks \
+            --result-dir="$baseline_dir"
+
+        # Extract max depth from baseline
+        max_depth=$(uv run python -c "
+import pandas as pd
+df = pd.read_csv('$baseline_dir/mwe_node_state.csv')
+levels = pd.to_numeric(df['level'], errors='coerce').dropna().astype(int)
+valid = levels[(levels >= 0) & (levels < 1000000)]
+print(int(valid.max())) if not valid.empty else print(0)
+" 2>/dev/null)
+
+        if [[ -z "$max_depth" || "$max_depth" -lt 1 ]]; then
+            echo "WARN: Could not determine max_depth for $topo, skipping" >&2
+            continue
+        fi
+        echo "  Max depth for $topo: $max_depth"
+
+        for depth in $(seq 1 "$max_depth"); do
+            for rep in $(seq 0 $(( FIG2_REPEATS - 1 ))); do
+                rep_dir="$topo_root/depth_${depth}/rep_${rep}"
+                mkdir -p "$rep_dir"
+                cp -f "$RESULT_DIR/cbt_edges.txt" "$rep_dir/cbt_edges.txt"
+                cp -f "$RESULT_DIR/er_edges.txt" "$rep_dir/er_edges.txt"
+                cp -f "$RESULT_DIR/twitch_edges.txt" "$rep_dir/twitch_edges.txt"
+                seed=$(( SCM_RANDOM_SEED + rep ))
+                OMNETPP_RNGSEEDSET="$seed" \
+                ./scm-simulations -u Cmdenv -c "$fault_cfg" -n networks \
+                    --result-dir="$rep_dir" \
+                    --**.faultInjector.campaignTargetDepth="$depth" \
+                    --**.faultInjector.campaignSeed="$seed"
+            done
+            echo "  $topo depth $depth: $FIG2_REPEATS reps done"
+        done
+    done
+
+    # Analysis + plot
+    uv run python "$SCRIPT_DIR/analysis/build_fig2_outputs.py" "$sim_root" --result-root "$sim_root"
+    echo "Fig2 experiment completed"
+    exit 0
+fi
+
 if [[ "$MWE_MODE" -eq 1 ]]; then
     MWE_NUM_NODES="${MWE_NUM_NODES:-1024}"
     if ! [[ "$MWE_NUM_NODES" =~ ^[0-9]+$ ]] || [[ "$MWE_NUM_NODES" -lt 8 ]]; then
