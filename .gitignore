@@ -278,3 +278,6 @@ docker-compose.yml.env
 # Local IDE workspace settings
 /.vscode/
 
+# Claude Code local state
+/.claude/
+

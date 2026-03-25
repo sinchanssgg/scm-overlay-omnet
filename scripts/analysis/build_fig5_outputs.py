@@ -66,19 +66,24 @@ def normalize_topology(topology: str) -> str:
 
 
 def latest_stabilization_time(scenario_dir: Path) -> float:
-    times: list[float] = []
+    """Return the maximum convergence metric across all .vec files in a scenario.
+
+    The signal value represents:
+    - For SCM/Byrenheid: simTime() - lastFaultTime (seconds from fault to recovery)
+    - For Garg-Grosu: discrete round count when beta stabilized
+
+    We read the signal *value* (not the emission timestamp) because it carries
+    the semantically correct metric for each algorithm variant.
+    """
+    values: list[float] = []
     for vec in scenario_dir.glob("*.vec"):
         df = parse_vec_file(vec)
         if df.empty:
             continue
         stable = df[df["signal"] == "nodeStableTime"]
         if not stable.empty:
-            times.append(float(stable["time"].max()))
-    if not times:
-        # No nodeStableTime signals emitted — nodes stabilized during
-        # initial self-organization (before any fault injection), so
-        # lastFaultTime was never set.  Use NaN to flag this scenario
-        # rather than crashing the entire pipeline.
+            values.append(float(stable["value"].max()))
+    if not values:
         import sys
         print(
             f"WARN: No nodeStableTime signals in {scenario_dir.name}; "
@@ -86,7 +91,7 @@ def latest_stabilization_time(scenario_dir: Path) -> float:
             file=sys.stderr,
         )
         return float("nan")
-    return float(sum(times) / len(times))
+    return float(max(values))
 
 
 def build_analysis(result_root: Path) -> pd.DataFrame:
