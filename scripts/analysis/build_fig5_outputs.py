@@ -72,12 +72,20 @@ def latest_stabilization_time(scenario_dir: Path) -> float:
         if df.empty:
             continue
         stable = df[df["signal"] == "nodeStableTime"]
-        if stable.empty:
-            times.append(float(df["time"].max()))
-        else:
+        if not stable.empty:
             times.append(float(stable["time"].max()))
     if not times:
-        raise ValueError(f"No usable vector data found in {scenario_dir}")
+        # No nodeStableTime signals emitted — nodes stabilized during
+        # initial self-organization (before any fault injection), so
+        # lastFaultTime was never set.  Use NaN to flag this scenario
+        # rather than crashing the entire pipeline.
+        import sys
+        print(
+            f"WARN: No nodeStableTime signals in {scenario_dir.name}; "
+            f"using NaN for rounds_to_converge",
+            file=sys.stderr,
+        )
+        return float("nan")
     return float(sum(times) / len(times))
 
 
