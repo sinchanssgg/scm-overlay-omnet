@@ -61,11 +61,19 @@ void SCMNode::initialize()
     // Register signal for stabilization metrics
     stabilizationTimeSignal = registerSignal("nodeStableTime");
     lastFaultTime = 0;
+    globalStabilizationRound = 0;
+    globalFaultEpoch = 0;
+    localFaultEpoch = 0;
+    lastFaultEpochWithTransition = 0;
+    emittedConvergenceForEpoch = false;
+    globalRoundMode = par("globalRoundMode").boolValue();
 
     // Garg-Grosu convergence state
     prevBeta = NAN;
     ggConverged = false;
     roundCounter = 0;
+    prevBetaGlobal = NAN;
+    betaStableRounds = 0;
 
     // Clear crypto state
     sizeSig.clear();
@@ -104,9 +112,9 @@ void SCMNode::handleMessage(cMessage *msg)
         return;
     }
 
-    // Track stabilization time for metrics (only after a real fault occurred)
-    // Garg-Grosu uses round-count emission in handleStabilization() instead — Arannya Mukherjee
-    if (algorithmKind != AlgorithmKind::GARG_GROSU &&
+    // Legacy mode: SCM/Byrenheid emit elapsed sim-time when stable after fault.
+    if (!globalRoundMode &&
+        algorithmKind != AlgorithmKind::GARG_GROSU &&
         status == STABLE && lastFaultTime > 0) {
         emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
     }
@@ -121,6 +129,9 @@ void SCMNode::handleMessage(cMessage *msg)
                 handleBetaUpdate(ctrlMsg);
                 break;
             case SCMControlMessage::FAULT_NOTIFY:
+                handleFaultNotification(ctrlMsg);
+                break;
+            case SCMControlMessage::FAULT_EPOCH_START:
                 handleFaultNotification(ctrlMsg);
                 break;
             case SCMControlMessage::PROOF_REQUEST:
@@ -224,9 +235,29 @@ void SCMNode::finish()
 
 void SCMNode::handleStabilization()
 {
+    if (id == 0 && globalRoundMode && globalFaultEpoch > 0) {
+        globalStabilizationRound++;
+    }
+
+    if (globalRoundMode) {
+        if (status != FAULTY && (id == 0 || parentId != -1)) {
+            if (!std::isnan(prevBetaGlobal) && fabs(beta - prevBetaGlobal) < 1e-6) {
+                betaStableRounds++;
+            } else {
+                betaStableRounds = 0;
+            }
+            prevBetaGlobal = beta;
+        } else {
+            betaStableRounds = 0;
+            prevBetaGlobal = NAN;
+        }
+    }
+
     // --- Recovery Phase ---
     // Rule 2: Error Detection (Find better parent)
-    if (status == STABLE && existsBetterParent()) {
+    if (status == STABLE &&
+        !(globalRoundMode && algorithmKind == AlgorithmKind::GARG_GROSU) &&
+        existsBetterParent()) {
         int oldParent = parentId;
         parentId = findBestParent();
         if (parentId != oldParent) {
@@ -266,8 +297,9 @@ void SCMNode::handleStabilization()
             calculateAlpha();
             calculateBeta();
             payment = beta * numUsers;
-            // Garg-Grosu uses beta-convergence detection (below), not fault-recovery timing — Arannya Mukherjee
-            if (algorithmKind != AlgorithmKind::GARG_GROSU && lastFaultTime > 0) {
+            if (!globalRoundMode &&
+                algorithmKind != AlgorithmKind::GARG_GROSU &&
+                lastFaultTime > 0) {
                 emit(stabilizationTimeSignal, (simTime() - lastFaultTime).dbl());
             }
             bubble("REJOINED TREE");
@@ -297,11 +329,10 @@ void SCMNode::handleStabilization()
         bubble("PROPAGATING PROOF");
     }
 
-    // --- Garg-Grosu convergence detection --- — Arannya Mukherjee
-    // Per Garg-Grosu: a node declares local convergence when its beta value
-    // is identical across two consecutive rounds. Only track while STABLE
-    // to avoid counting rounds spent in FAULTY/RECOVERING.
-    if (algorithmKind == AlgorithmKind::GARG_GROSU && status == STABLE) {
+    // Garg-Grosu local convergence state: beta unchanged across consecutive rounds.
+    if (!globalRoundMode &&
+        algorithmKind == AlgorithmKind::GARG_GROSU &&
+        status == STABLE) {
         roundCounter++;
         if (!ggConverged && !std::isnan(prevBeta) && fabs(beta - prevBeta) < 1e-6) {
             ggConverged = true;
@@ -309,12 +340,27 @@ void SCMNode::handleStabilization()
         }
         prevBeta = beta;
     }
+
+    if (id == 0 && globalRoundMode && status == STABLE &&
+        globalFaultEpoch > 0 && !emittedConvergenceForEpoch) {
+        if (allNodesConvergedInCurrentEpoch()) {
+            emit(stabilizationTimeSignal, (double)globalStabilizationRound);
+            emittedConvergenceForEpoch = true;
+        }
+    }
 }
 
 // ─── State transition helpers ────────────────────────────────────────
 
 void SCMNode::transitionToFaulty()
 {
+    if (globalRoundMode &&
+        globalFaultEpoch > 0 &&
+        lastFaultEpochWithTransition == globalFaultEpoch &&
+        status == FAULTY) {
+        return;
+    }
+
     status = FAULTY;
     lastFaultTime = simTime().dbl();
     sizeSig.clear();
@@ -323,6 +369,15 @@ void SCMNode::transitionToFaulty()
     ggConverged = false;
     prevBeta = NAN;
     roundCounter = 0;
+
+    if (globalRoundMode) {
+        lastFaultEpochWithTransition = globalFaultEpoch;
+        localFaultEpoch = globalFaultEpoch;
+        globalStabilizationRound = 0;
+        emittedConvergenceForEpoch = false;
+        betaStableRounds = 0;
+        prevBetaGlobal = NAN;
+    }
 }
 
 // ─── Consistency checks ─────────────────────────────────────────────
@@ -353,6 +408,11 @@ bool SCMNode::notLocallyConsistent()
 
 bool SCMNode::lostStableSupport()
 {
+    if (algorithmKind == AlgorithmKind::GARG_GROSU) {
+        // Garg-Grosu baseline path tolerates temporary parent instability.
+        return false;
+    }
+
     if (parentId == -1) return false;  // Root has no parent
 
     SCMNode *parent = getParentNode();
@@ -430,6 +490,11 @@ double SCMNode::parentScore(const SCMNode* candidate) const
         return INFINITY;
     }
     if (algorithmKind == AlgorithmKind::GARG_GROSU) {
+        if (globalRoundMode) {
+            // In strict global-round experiments, prefer structural progression to ensure
+            // network-wide recovery can terminate under the shared convergence criterion.
+            return static_cast<double>(candidate->level) * 1000000.0 + candidate->id;
+        }
         return candidate->beta;
     }
     if (algorithmKind == AlgorithmKind::BYRENHEID) {
@@ -525,11 +590,63 @@ void SCMNode::handleBetaUpdate(SCMControlMessage* msg)
 
 void SCMNode::handleFaultNotification(SCMControlMessage* msg)
 {
+    if (msg->getMsgType() == SCMControlMessage::FAULT_EPOCH_START) {
+        if (globalRoundMode) {
+            globalFaultEpoch = (int)msg->getValue();
+            localFaultEpoch = globalFaultEpoch;
+            globalStabilizationRound = 0;
+            emittedConvergenceForEpoch = false;
+            ggConverged = false;
+            prevBeta = NAN;
+            roundCounter = 0;
+            betaStableRounds = 0;
+            prevBetaGlobal = NAN;
+        }
+        return;
+    }
+
     if (status == STABLE) {
         transitionToFaulty();
         bubble("FAULT RECEIVED");
         notifyChildren(SCMControlMessage::FAULT_NOTIFY);
     }
+}
+
+bool SCMNode::allNodesConvergedInCurrentEpoch() const
+{
+    if (!globalRoundMode || globalFaultEpoch <= 0) {
+        return false;
+    }
+
+    cModule *network = getParentModule();
+    if (!network) {
+        return false;
+    }
+
+    int numNodes = network->par("numNodes").intValue();
+    int consideredNodes = 0;
+    for (int i = 0; i < numNodes; i++) {
+        cModule *mod = network->getSubmodule("node", i);
+        SCMNode *node = dynamic_cast<SCMNode*>(mod);
+        if (!node) {
+            return false;
+        }
+        if (node->localFaultEpoch != globalFaultEpoch) {
+            return false;
+        }
+
+        if (node->id != 0 && node->parentId == -1) {
+            return false;
+        }
+        if (node->status != STABLE) {
+            return false;
+        }
+        consideredNodes++;
+        if (node->betaStableRounds < 2) {
+            return false;
+        }
+    }
+    return consideredNodes > 0;
 }
 
 void SCMNode::handleProofRequest(SCMControlMessage* msg)

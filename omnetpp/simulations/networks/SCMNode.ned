@@ -9,6 +9,9 @@ simple SCMNode {
         int numUsers;
         double linkCost @default(1.0);
         string algorithmVariant @default("scm");
+        bool globalRoundMode @default(false);
+        @signal[nodeStableTime](type=double);
+        @statistic[nodeStableTime](source=nodeStableTime; record=vector);
 
         @display("i=block/process");
 

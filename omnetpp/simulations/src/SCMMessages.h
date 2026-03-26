@@ -16,6 +16,7 @@ class SCMControlMessage : public omnetpp::cMessage {
         ALPHA_UPDATE,
         BETA_UPDATE,
         FAULT_NOTIFY,
+        FAULT_EPOCH_START,
         PROOF_REQUEST,
         PROOF_RESPONSE
     };

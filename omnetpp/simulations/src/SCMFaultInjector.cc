@@ -206,6 +206,7 @@ void SCMFaultInjector::initialize()
     enableMetricSampling = par("enableMetricSampling").boolValue();
     sampleDelay = par("sampleDelay").doubleValue();
     sampleSerial = 0;
+    faultEpochCounter = 0;
 
     const char *resultDirParam = getEnvir()->getConfig()->getConfigValue("result-dir");
     resultDir = (resultDirParam && *resultDirParam) ? resultDirParam : "";
@@ -222,6 +223,20 @@ void SCMFaultInjector::initialize()
 
     scheduleAt(simTime() + par("initialDelay").doubleValue(), 
               new cMessage("InjectFault"));
+}
+
+void SCMFaultInjector::broadcastFaultEpoch(cModule *network)
+{
+    int numNodes = network->par("numNodes").intValue();
+    faultEpochCounter++;
+    for (int i = 0; i < numNodes; i++) {
+        SCMNode *node = check_and_cast<SCMNode*>(network->getSubmodule("node", i));
+        SCMControlMessage *epochMsg = new SCMControlMessage("FaultEpochStart");
+        epochMsg->setMsgType(SCMControlMessage::FAULT_EPOCH_START);
+        epochMsg->setSenderId(-1);
+        epochMsg->setValue((double)faultEpochCounter);
+        sendDirect(epochMsg, node->gate("faultIn"));
+    }
 }
 
 void SCMFaultInjector::handleMessage(cMessage *msg)
@@ -276,30 +291,12 @@ void SCMFaultInjector::injectFault()
                 throw cRuntimeError("Deterministic depth campaign selected no targets for network %s (exactLevel=%d, maxDepth=%d)",
                                     networkName, campaignExactLevel, maxCampaignDepth);
             }
-            // Best-effort fallback for sparse/non-tree overlays: choose one deterministic
-            // non-root node from the requested index-derived depth bucket so one-shot
-            // campaigns always emit a sample row.
-            std::vector<int> fallbackCandidates;
-            if (campaignExactLevel >= 0) {
-                for (int i = 1; i < numNodes; i++) {
-                    if (computeCbtDepthFromIndex(i) == campaignExactLevel) {
-                        fallbackCandidates.push_back(i);
-                    }
-                }
-            }
-            if (fallbackCandidates.empty()) {
-                for (int i = 1; i < numNodes; i++) {
-                    fallbackCandidates.push_back(i);
-                }
-            }
-            if (!fallbackCandidates.empty()) {
-                int idx = (campaignSeed + campaignRound) % (int)fallbackCandidates.size();
-                targets.push_back(fallbackCandidates[idx]);
-                EV_WARN << "No SCM-depth target for network " << networkName
-                        << " at requested level " << campaignExactLevel
-                        << "; using index-depth fallback node " << targets.front() << endl;
-            }
+            EV_WARN << "No deterministic target for network " << networkName
+                    << " at requested depth (campaignTargetDepth=" << campaignTargetDepth
+                    << ", campaignExactLevel=" << campaignExactLevel << "); skipping injection" << endl;
+            return;
         }
+        broadcastFaultEpoch(network);
         for (int nodeId : targets) {
             SCMNode *node = check_and_cast<SCMNode*>(network->getSubmodule("node", nodeId));
             int level = campaignExactLevel >= 0 ? campaignExactLevel : node->getLevel();
@@ -311,15 +308,24 @@ void SCMFaultInjector::injectFault()
         return;
     }
 
+    std::vector<int> probabilisticTargets;
     for (int i = 0; i < numNodes; i++) {
         if (uniform(0, 1) < par("faultProbability").doubleValue()) {
-            SCMNode *node = check_and_cast<SCMNode*>(network->getSubmodule("node", i));
-            int level = node->getLevel();
-            if (level < 0 || level >= numNodes) {
-                level = computeCbtDepthFromIndex(i);
-            }
-            applyFaultToNode(node, numNodes, level, baselineBetaAvg, baselinePaymentAvg);
+            probabilisticTargets.push_back(i);
         }
+    }
+
+    if (!probabilisticTargets.empty()) {
+        broadcastFaultEpoch(network);
+    }
+
+    for (int nodeId : probabilisticTargets) {
+        SCMNode *node = check_and_cast<SCMNode*>(network->getSubmodule("node", nodeId));
+        int level = node->getLevel();
+        if (level < 0 || level >= numNodes) {
+            level = computeCbtDepthFromIndex(nodeId);
+        }
+        applyFaultToNode(node, numNodes, level, baselineBetaAvg, baselinePaymentAvg);
     }
 }
 
