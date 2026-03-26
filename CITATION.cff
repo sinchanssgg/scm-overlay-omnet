@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+title: "On Self-stabilizing Sharing of Multicast Transmission in Overlays"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Sengupta
+    given-names: Sinchan
+    email: sinchan.sengupta@ls2n.fr
+    affiliation: "LS2N, Nantes Université"
+  - family-names: Mukherjee
+    given-names: Arannya
+    email: arannya@adhrith.ai
+    affiliation: "ADHRITH AI INDIA R&D PRIVATE LIMITED"
+  - family-names: Perrin
+    given-names: Matthieu
+    email: matthieu.perin@ls2n.fr
+    affiliation: "LS2N, Nantes Université"
+repository-code: "https://github.com/sinchanssgg/scm-overlay-omnet"
+license: MIT
+keywords:
+  - self-stabilization
+  - multicast
+  - overlay network
+  - cost sharing
+  - OMNeT++
+  - discrete event simulation
+  - fault tolerance
