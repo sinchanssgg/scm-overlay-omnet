@@ -1,5 +1,7 @@
 # Self-stabilizing Multicast Overlay (SCM) Implementation
 
+[![DOI](https://zenodo.org/badge/1034695734.svg)](https://doi.org/10.5281/zenodo.19228074)
+
 OMNeT++ implementation of the self-stabilizing multicast overlay algorithm from:
 
 > "On Self-stabilizing Sharing of Multicast Transmission in Overlays"

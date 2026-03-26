@@ -1,5 +1,7 @@
 # Artifact Evaluation Playbook (DSN 2026)
 
+[![DOI](https://zenodo.org/badge/1034695734.svg)](https://doi.org/10.5281/zenodo.19228074)
+
 This guide is for AE reviewers and maintainers validating artifact readiness.
 
 ## 1) Kick-the-tires checklist

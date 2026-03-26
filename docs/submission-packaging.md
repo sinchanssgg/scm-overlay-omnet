@@ -1,5 +1,7 @@
 # Artifact Submission Packaging (Issue #21)
 
+[![DOI](https://zenodo.org/badge/1034695734.svg)](https://doi.org/10.5281/zenodo.19228074)
+
 This document tracks what to package for DSN artifact submission and how to prepare archival metadata.
 
 ## 1) Required submission channel
