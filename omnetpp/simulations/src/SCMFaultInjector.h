@@ -38,6 +38,7 @@ class SCMFaultInjector : public omnetpp::cSimpleModule {
     bool enableMetricSampling;
     double sampleDelay;
     int sampleSerial;
+    int faultEpochCounter;
     std::string resultDir;
     std::vector<std::string> sampleRows;
 
@@ -50,6 +51,7 @@ class SCMFaultInjector : public omnetpp::cSimpleModule {
     void notifyNodeFault(class SCMNode *node);
     void scheduleMetricSample(int nodeId, int level, double baselineBeta, double baselinePayment);
     void handleMetricSample(omnetpp::cMessage *msg);
+    void broadcastFaultEpoch(class omnetpp::cModule *network);
     void injectFault();
     
   protected:

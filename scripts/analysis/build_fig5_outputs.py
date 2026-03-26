@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-"""Build Figure-5 convergence outputs from simulation node-state + vectors.
-
-Author: Sinchan Sengupta <sinchan.sengupta@univ-nantes.fr>
-Modified By: Arannya Mukherjee <arannya@adhrith.ai>
-"""
+"""Build strict Outcome-2 plot: rounds-to-converge vs depth (SCM/Garg-Grosu, CBT)."""
 from __future__ import annotations
 
 import argparse
+import re
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -15,6 +13,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+
+
+DEPTH_RE = re.compile(r"^depth_(\d+)$")
 
 
 def parse_vec_file(vec_path: Path) -> pd.DataFrame:
@@ -46,39 +47,7 @@ def parse_vec_file(vec_path: Path) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def load_node_state(path: Path) -> pd.DataFrame:
-    csv_path = path / "mwe_node_state.csv"
-    if not csv_path.exists():
-        raise FileNotFoundError(f"Expected node state export: {csv_path}")
-    df = pd.read_csv(csv_path)
-    required = {"level", "status", "proof_valid", "algorithm", "topology", "scm_local_consistent"}
-    missing = required.difference(df.columns)
-    if missing:
-        raise ValueError(f"Missing required columns in {csv_path}: {sorted(missing)}")
-    return df
-
-
-def normalize_topology(topology: str) -> str:
-    top = str(topology).strip()
-    if top in {"CompleteBinaryTree", "SCMNetwork"}:
-        return "CBT"
-    if top in {"TwitchNetwork"}:
-        return "Twitch"
-    if top in {"ErdosRenyi"}:
-        return "ER"
-    return top
-
-
-def latest_stabilization_time(scenario_dir: Path) -> float:
-    """Return the maximum convergence metric across all .vec files in a scenario.
-
-    The signal value represents:
-    - For SCM/Byrenheid: simTime() - lastFaultTime (seconds from fault to recovery)
-    - For Garg-Grosu: discrete round count when beta stabilized
-
-    We read the signal *value* (not the emission timestamp) because it carries
-    the semantically correct metric for each algorithm variant.
-    """
+def latest_stabilization_value(scenario_dir: Path) -> float:
     values: list[float] = []
     for vec in scenario_dir.glob("*.vec"):
         df = parse_vec_file(vec)
@@ -88,121 +57,119 @@ def latest_stabilization_time(scenario_dir: Path) -> float:
         if not stable.empty:
             values.append(float(stable["value"].max()))
     if not values:
-        import sys
-        print(
-            f"WARN: No nodeStableTime signals in {scenario_dir.name}; "
-            f"using NaN for rounds_to_converge",
-            file=sys.stderr,
-        )
-        return float("nan")
+        raise ValueError(f"No nodeStableTime values found in {scenario_dir}")
     return float(max(values))
 
 
-def build_analysis(result_root: Path) -> pd.DataFrame:
-    rows = []
-    scenario_dirs = [p for p in result_root.iterdir() if p.is_dir()]
-    if not scenario_dirs:
-        raise FileNotFoundError(f"No scenario directories found under {result_root}")
-    for scenario_dir in scenario_dirs:
-        state_path = scenario_dir / "mwe_node_state.csv"
-        if not state_path.exists():
+def collect_rows(result_root: Path) -> pd.DataFrame:
+    base = result_root / "CBT"
+    if not base.is_dir():
+        raise FileNotFoundError(f"Missing CBT directory: {base}")
+
+    rows: list[dict[str, float | int | str]] = []
+    missing_by_alg: dict[str, list[int]] = {"SCM": [], "Garg-Grosu": []}
+    for depth_dir in sorted(base.glob("depth_*")):
+        m = DEPTH_RE.match(depth_dir.name)
+        if not m:
             continue
-        state = load_node_state(scenario_dir)
-        rounds = latest_stabilization_time(scenario_dir)
-        algorithm_values = state["algorithm"].dropna().astype(str).unique().tolist()
-        if len(algorithm_values) != 1:
-            raise ValueError(
-                f"Scenario {scenario_dir.name} has mixed algorithm labels: {algorithm_values}"
-            )
-        topology_values = state["topology"].dropna().astype(str).unique().tolist()
-        if len(topology_values) != 1:
-            raise ValueError(
-                f"Scenario {scenario_dir.name} has mixed topology labels: {topology_values}"
-            )
+        depth = int(m.group(1))
 
-        algorithm = algorithm_values[0]
-        topology = normalize_topology(topology_values[0])
-        proof_valid = state["proof_valid"].astype(int) == 1
-        stable = state["status"] == "STABLE"
-        scm_consistent = state["scm_local_consistent"].astype(int) == 1
-        stable_levels = state.loc[stable, "level"].astype(int)
-        finite_levels = stable_levels[stable_levels < 1_000_000]
-        if finite_levels.empty:
-            raise ValueError(f"Scenario {scenario_dir.name} has no finite stable levels for depth")
-        depth = int(finite_levels.max())
-        if algorithm == "Garg-Grosu":
-            # Per paper baseline: may converge faster but can be inconsistent.
-            correct = bool((stable & proof_valid & scm_consistent).all())
-        else:
-            correct = bool((stable & proof_valid).all())
-
-        rows.append(
-            {
-                "topology": topology,
-                "depth": depth,
-                "algorithm": algorithm,
-                "rounds_to_converge": rounds,
-                "correct_convergence": correct,
-            }
-        )
+        for alg_dir, alg_label in (("SCM", "SCM"), ("GargGrosu", "Garg-Grosu")):
+            run_dir = depth_dir / alg_dir
+            if not run_dir.is_dir():
+                print(f"WARN: missing {alg_label} run dir at depth {depth}", file=sys.stderr)
+                continue
+            try:
+                rounds = latest_stabilization_value(run_dir)
+            except Exception as exc:
+                print(f"WARN: {alg_label} depth {depth}: {exc}", file=sys.stderr)
+                missing_by_alg[alg_label].append(depth)
+                continue
+            rows.append(
+                {
+                    "topology": "CBT",
+                    "algorithm": alg_label,
+                    "depth_original": depth,
+                    "rounds_to_converge": rounds,
+                }
+            )
 
     if not rows:
-        raise ValueError("Parsed vectors but no usable rows for convergence analysis")
+        raise ValueError("No valid rows found for Outcome-2 analysis")
 
-    out = pd.DataFrame(rows)
-    out = (
-        out.groupby(["topology", "depth", "algorithm"], as_index=False)
-        .agg(
-            rounds_to_converge=("rounds_to_converge", "mean"),
-            correct_convergence=("correct_convergence", "all"),
-        )
+    df = pd.DataFrame(rows)
+    scm_depths = set(df[df["algorithm"] == "SCM"]["depth_original"].astype(int).tolist())
+    garg_depths = set(df[df["algorithm"] == "Garg-Grosu"]["depth_original"].astype(int).tolist())
+    common_depths = sorted(scm_depths.intersection(garg_depths))
+    if not common_depths:
+        if missing_by_alg["Garg-Grosu"]:
+            raise ValueError(
+                "No common depths between SCM and Garg-Grosu runs: "
+                "Garg-Grosu produced no nodeStableTime values. "
+                "Current model does not emit a reliable global-round convergence metric for Garg-Grosu. "
+                "Re-run with a supported comparator metric or updated Garg instrumentation."
+            )
+        raise ValueError("No common depths between SCM and Garg-Grosu runs")
+
+    dropped_scm = sorted(scm_depths - set(common_depths))
+    dropped_garg = sorted(garg_depths - set(common_depths))
+    if dropped_scm:
+        print(f"WARN: dropped SCM non-common depths: {dropped_scm}", file=sys.stderr)
+    if dropped_garg:
+        print(f"WARN: dropped Garg-Grosu non-common depths: {dropped_garg}", file=sys.stderr)
+
+    depth_map = {d: i + 1 for i, d in enumerate(common_depths)}
+    df = df[df["depth_original"].isin(common_depths)].copy()
+    df["depth_plot"] = df["depth_original"].map(depth_map)
+    return df.sort_values(["depth_plot", "algorithm"]).reset_index(drop=True)
+
+
+def plot_outcome2(df: pd.DataFrame, out_path: Path) -> None:
+    plt.figure(figsize=(8.5, 6))
+    sns.set_theme(style="whitegrid")
+    sns.lineplot(
+        data=df,
+        x="depth_plot",
+        y="rounds_to_converge",
+        hue="algorithm",
+        marker="o",
+        linewidth=2.2,
     )
-    out["rounds_to_converge"] = out["rounds_to_converge"].round(6)
-    return out
-
-
-def plot_fig5(df: pd.DataFrame, out_path: Path) -> None:
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5), sharey=True)
-    for ax, topology in zip(axes, ("Twitch", "CBT")):
-        subset = df[df["topology"] == topology]
-        if subset.empty:
-            ax.set_title(f"{topology} convergence rounds")
-            ax.text(0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center")
-            ax.axis("off")
-            continue
-        sns.lineplot(
-            data=subset,
-            x="depth",
-            y="rounds_to_converge",
-            hue="algorithm",
-            marker="o",
-            ax=ax,
-        )
-        ax.set_title(f"{topology} convergence rounds")
-        ax.set_xlabel("Depth")
-        ax.set_ylabel("Rounds to converge")
-        ax.grid(alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=300)
+    xticks = sorted(df["depth_plot"].unique().tolist())
+    labels = (
+        df[["depth_plot", "depth_original"]]
+        .drop_duplicates()
+        .sort_values("depth_plot")
+    )
+    plt.xticks(xticks, labels["depth_original"].astype(int).astype(str).tolist())
+    plt.xlabel("Tree Depth")
+    plt.ylabel("Rounds to Converge")
+    plt.title("Rounds to Converge vs. Tree Depth")
+    plt.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=300)
+    plt.close()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dir", help="Directory for fig5 outputs")
-    parser.add_argument("--result-root", required=True, help="Result root containing scenario subdirs and .vec files")
+    parser.add_argument("--result-root", required=True, help="Result root containing CBT/depth_*/{SCM,GargGrosu}")
     args = parser.parse_args()
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    df = build_analysis(Path(args.result_root))
+    df = collect_rows(Path(args.result_root))
     out_csv = out_dir / "analysis.csv"
-    out_png = out_dir / "metrics_plot.png"
-    df.to_csv(out_csv, index=False)
-    plot_fig5(df, out_png)
-
+    out_png = out_dir / "rounds_to_converge_vs_depth.png"
+    out_legacy_png = out_dir / "metrics_plot.png"
+    df.to_csv(out_csv, index=False, float_format="%.6f")
+    plot_outcome2(df, out_png)
+    plot_outcome2(df, out_legacy_png)
     print(f"Saved analysis to {out_csv}")
     print(f"Saved plot to {out_png}")
+    print(f"Saved plot to {out_legacy_png}")
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ MWE_MODE=0
 CLAIM_A_MODE=0
 CLAIM_B_MODE=0
 FIG2_MODE=0
+FIG5_MODE=0
 
 usage() {
     cat <<'EOF'
@@ -27,7 +28,8 @@ Options:
     --mwe                Run only the artifact minimum working example
     --claim-a            Run claim-matrix scaffold scenarios (PR-A)
     --claim-b            Run claim-matrix algorithm comparison scenarios (PR-B)
-    --fig2               Run Figure-2 per-depth experiment (depth x rep loop)
+    --fig2               Run strict Outcome-1 beta-vs-depth experiment
+    --fig5               Run strict Outcome-2 convergence-vs-depth experiment
     --skip-sim-build     Skip simulation binary build step
     -h, --help           Show this help
 
@@ -35,7 +37,6 @@ Environment:
     RESULT_DIR           Custom result directory (default: results/<timestamp>)
     SCM_RANDOM_SEED      Seed for deterministic preprocessing/simulation (default: 1337)
     MWE_NUM_NODES        Node count for --mwe mode (default: 1023)
-    FIG2_REPEATS         Repetitions per depth for --fig2 (default: 10, paper: 100)
 EOF
 }
 
@@ -61,6 +62,10 @@ while [[ $# -gt 0 ]]; do
             FIG2_MODE=1
             shift
             ;;
+        --fig5)
+            FIG5_MODE=1
+            shift
+            ;;
         --skip-sim-build)
             SKIP_SIM_BUILD=1
             shift
@@ -77,8 +82,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ "$MWE_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 || "$FIG2_MODE" -eq 1 ) ]]; then
-    echo "ERROR: --mwe cannot be combined with --claim-a/--claim-b/--fig2" >&2
+if [[ "$MWE_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 || "$FIG2_MODE" -eq 1 || "$FIG5_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --mwe cannot be combined with --claim-a/--claim-b/--fig2/--fig5" >&2
     exit 2
 fi
 
@@ -87,8 +92,13 @@ if [[ "$CLAIM_A_MODE" -eq 1 && "$CLAIM_B_MODE" -eq 1 ]]; then
     exit 2
 fi
 
-if [[ "$FIG2_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 ) ]]; then
-    echo "ERROR: --fig2 cannot be combined with --claim-a/--claim-b" >&2
+if [[ "$FIG2_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 || "$FIG5_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --fig2 cannot be combined with --claim-a/--claim-b/--fig5" >&2
+    exit 2
+fi
+
+if [[ "$FIG5_MODE" -eq 1 && ( "$CLAIM_A_MODE" -eq 1 || "$CLAIM_B_MODE" -eq 1 || "$FIG2_MODE" -eq 1 ) ]]; then
+    echo "ERROR: --fig5 cannot be combined with --claim-a/--claim-b/--fig2" >&2
     exit 2
 fi
 
@@ -145,7 +155,7 @@ export OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED"
 CBT_NODES=31
 ER_NODES=50
 ER_PROB=0.2
-if [[ "$MWE_MODE" -eq 1 ]]; then
+if [[ "$MWE_MODE" -eq 1 || "$FIG2_MODE" -eq 1 || "$FIG5_MODE" -eq 1 ]]; then
     CBT_NODES="${MWE_NUM_NODES:-1023}"
     ER_NODES="${MWE_NUM_NODES:-1023}"
     ER_PROB=0.02
@@ -180,10 +190,10 @@ fi
 
 cd "$SIM_DIR"
 
-# --- Figure 2: per-depth experiment ---
+# --- Outcome 1: strict beta-vs-depth experiment ---
 if [[ "$FIG2_MODE" -eq 1 ]]; then
-    FIG2_REPEATS="${FIG2_REPEATS:-10}"
     sim_root="$RESULT_DIR/fig2"
+    FIG_DEPTH_MAX="${FIG_DEPTH_MAX:-9}"
 
     declare -a fig2_topos=("CBT" "ER" "Twitch")
     declare -a fig2_baselines=("BaselineCBT" "BaselineER" "BaselineTwitch")
@@ -201,45 +211,72 @@ if [[ "$FIG2_MODE" -eq 1 ]]; then
         cp -f "$RESULT_DIR/cbt_edges.txt" "$baseline_dir/cbt_edges.txt"
         cp -f "$RESULT_DIR/er_edges.txt" "$baseline_dir/er_edges.txt"
         cp -f "$RESULT_DIR/twitch_edges.txt" "$baseline_dir/twitch_edges.txt"
+        OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED" \
         ./scm-simulations -u Cmdenv -c "$baseline_cfg" -n networks \
-            --result-dir="$baseline_dir"
+            --result-dir="$baseline_dir" \
+            --**.numNodes="${MWE_NUM_NODES:-1023}"
 
-        # Extract max depth from baseline
-        max_depth=$(uv run python -c "
-import pandas as pd
-df = pd.read_csv('$baseline_dir/mwe_node_state.csv')
-levels = pd.to_numeric(df['level'], errors='coerce').dropna().astype(int)
-valid = levels[(levels >= 0) & (levels < 1000000)]
-print(int(valid.max())) if not valid.empty else print(0)
-" 2>/dev/null)
-
-        if [[ -z "$max_depth" || "$max_depth" -lt 1 ]]; then
-            echo "WARN: Could not determine max_depth for $topo, skipping" >&2
-            continue
-        fi
-        echo "  Max depth for $topo: $max_depth"
-
-        for depth in $(seq 1 "$max_depth"); do
-            for rep in $(seq 0 $(( FIG2_REPEATS - 1 ))); do
-                rep_dir="$topo_root/depth_${depth}/rep_${rep}"
-                mkdir -p "$rep_dir"
-                cp -f "$RESULT_DIR/cbt_edges.txt" "$rep_dir/cbt_edges.txt"
-                cp -f "$RESULT_DIR/er_edges.txt" "$rep_dir/er_edges.txt"
-                cp -f "$RESULT_DIR/twitch_edges.txt" "$rep_dir/twitch_edges.txt"
-                seed=$(( SCM_RANDOM_SEED + rep ))
-                OMNETPP_RNGSEEDSET="$seed" \
-                ./scm-simulations -u Cmdenv -c "$fault_cfg" -n networks \
-                    --result-dir="$rep_dir" \
-                    --**.faultInjector.campaignTargetDepth="$depth" \
-                    --**.faultInjector.campaignSeed="$seed"
-            done
-            echo "  $topo depth $depth: $FIG2_REPEATS reps done"
+        for depth in $(seq 1 "$FIG_DEPTH_MAX"); do
+            run_dir="$topo_root/depth_${depth}/run_0"
+            mkdir -p "$run_dir"
+            cp -f "$RESULT_DIR/cbt_edges.txt" "$run_dir/cbt_edges.txt"
+            cp -f "$RESULT_DIR/er_edges.txt" "$run_dir/er_edges.txt"
+            cp -f "$RESULT_DIR/twitch_edges.txt" "$run_dir/twitch_edges.txt"
+            OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED" \
+            ./scm-simulations -u Cmdenv -c "$fault_cfg" -n networks \
+                --result-dir="$run_dir" \
+                --**.numNodes="${MWE_NUM_NODES:-1023}" \
+                --**.faultInjector.campaignTargetDepth=-1 \
+                --**.faultInjector.maxCampaignDepth="$depth" \
+                --**.faultInjector.campaignSeed="$SCM_RANDOM_SEED"
+            echo "  $topo depth $depth: 1 deterministic run done"
         done
     done
 
     # Analysis + plot
     uv run python "$SCRIPT_DIR/analysis/build_fig2_outputs.py" "$sim_root" --result-root "$sim_root"
-    echo "Fig2 experiment completed"
+    echo "Outcome-1 experiment completed"
+    exit 0
+fi
+
+# --- Outcome 2: strict convergence-vs-depth experiment ---
+if [[ "$FIG5_MODE" -eq 1 ]]; then
+    sim_root="$RESULT_DIR/fig5"
+    FIG_DEPTH_MAX="${FIG_DEPTH_MAX:-9}"
+    mkdir -p "$sim_root"
+
+    for depth in $(seq 1 "$FIG_DEPTH_MAX"); do
+        for alg in SCM GargGrosu; do
+            run_dir="$sim_root/CBT/depth_${depth}/${alg}"
+            mkdir -p "$run_dir"
+            cp -f "$RESULT_DIR/cbt_edges.txt" "$run_dir/cbt_edges.txt"
+            cp -f "$RESULT_DIR/er_edges.txt" "$run_dir/er_edges.txt"
+            cp -f "$RESULT_DIR/twitch_edges.txt" "$run_dir/twitch_edges.txt"
+
+            if [[ "$alg" == "SCM" ]]; then
+                variant="scm"
+                global_round_mode="true"
+            else
+                variant="garg-grosu"
+                global_round_mode="true"
+            fi
+
+            OMNETPP_RNGSEEDSET="$SCM_RANDOM_SEED" \
+            ./scm-simulations -u Cmdenv -c Fig2_CBT_FaultParent -n networks \
+                --result-dir="$run_dir" \
+                --**.numNodes="${MWE_NUM_NODES:-1023}" \
+                --**.node[*].algorithmVariant="\"$variant\"" \
+                --**.node[*].globalRoundMode="$global_round_mode" \
+                --**.faultInjector.sendFaultNotify=true \
+                --**.faultInjector.campaignTargetDepth=-1 \
+                --**.faultInjector.maxCampaignDepth="$depth" \
+                --**.faultInjector.campaignSeed="$SCM_RANDOM_SEED"
+        done
+        echo "  Outcome2 depth $depth: SCM + Garg-Grosu done"
+    done
+
+    uv run python "$SCRIPT_DIR/analysis/build_fig5_outputs.py" "$sim_root" --result-root "$sim_root"
+    echo "Outcome-2 experiment completed"
     exit 0
 fi
 

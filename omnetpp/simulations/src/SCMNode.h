@@ -51,6 +51,14 @@ class SCMNode : public omnetpp::cSimpleModule {
     AlgorithmKind algorithmKind;
     simsignal_t stabilizationTimeSignal;
     double lastFaultTime;
+    int globalStabilizationRound;
+    int globalFaultEpoch;
+    int localFaultEpoch;
+    int lastFaultEpochWithTransition;
+    bool emittedConvergenceForEpoch;
+    bool globalRoundMode;
+    double prevBetaGlobal;
+    int betaStableRounds;
 
     // Garg-Grosu convergence detection (compare beta across consecutive rounds)
     double prevBeta;
@@ -68,6 +76,7 @@ class SCMNode : public omnetpp::cSimpleModule {
     bool lostStableSupport();
     bool allChildrenRecovering();
     bool allChildrenHaveProofs();
+    bool allNodesConvergedInCurrentEpoch() const;
     bool existsBetterParent();
     int findBestParent();
     double parentScore(const SCMNode* candidate) const;

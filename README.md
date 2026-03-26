@@ -72,6 +72,8 @@ Optional:
 ./scripts/run_experiments.sh --skip-sim-build
 RESULT_DIR=/tmp/scm-results ./scripts/run_experiments.sh --quick
 ./scripts/run_experiments.sh --mwe
+./scripts/run_experiments.sh --fig2
+./scripts/run_experiments.sh --fig5
 ./scripts/run_experiments.sh --claim-b --quick
 ```
 
@@ -82,10 +84,14 @@ SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --quick
 uv run python scripts/analysis/validate_outputs.py /tmp/scm-results --require-non-empty
 ```
 
-Artifact figure reproduction (Figure 2 style):
+Strict Outcome-1 reproduction (avg beta % increase vs depth, CBT/ER/Twitch):
 
 ```bash
-uv run python scripts/analysis/build_fig2_outputs.py results/fig2 --result-root results/latest
+RESULT_DIR=/tmp/scm-outcome1 SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --fig2
+uv run python scripts/analysis/validate_outputs.py /tmp/scm-outcome1/fig2 \
+  --require-columns topology,depth_original,depth_plot,baseline_beta_mean,attack_beta_mean,avg_beta_pct_increase \
+  --require-non-empty \
+  --require-files beta_increase_vs_depth.png
 ```
 
 Artifact figure reproduction (Figure 3 style):
@@ -97,10 +103,14 @@ uv run python scripts/analysis/build_fig3_outputs.py results/fig3 \
   --twitch-nodes 50
 ```
 
-Artifact figure reproduction (Figure 5 style):
+Strict Outcome-2 reproduction (rounds-to-converge vs depth, SCM vs Garg-Grosu on CBT):
 
 ```bash
-uv run python scripts/analysis/build_fig5_outputs.py results/fig5 --result-root results/latest
+RESULT_DIR=/tmp/scm-outcome2 SCM_RANDOM_SEED=1337 ./scripts/run_experiments.sh --fig5
+uv run python scripts/analysis/validate_outputs.py /tmp/scm-outcome2/fig5 \
+  --require-columns topology,algorithm,depth_original,rounds_to_converge,depth_plot \
+  --require-non-empty \
+  --require-files rounds_to_converge_vs_depth.png
 ```
 
 For claim-matrix algorithm comparison outputs (PR-B path):
@@ -141,17 +151,19 @@ Expected layout:
 - `$RESULT_DIR/analysis.csv`
 - `$RESULT_DIR/metrics_plot.png`
 
-For Figure 2 artifact output:
+For strict Outcome-1 output:
 - `results/fig2/analysis.csv`
 - `results/fig2/metrics_plot.png`
+- `results/fig2/beta_increase_vs_depth.png`
 
 For Figure 3 artifact output:
 - `results/fig3/analysis.csv`
 - `results/fig3/metrics_plot.png`
 
-For Figure 5 artifact output:
+For strict Outcome-2 output:
 - `results/fig5/analysis.csv`
 - `results/fig5/metrics_plot.png`
+- `results/fig5/rounds_to_converge_vs_depth.png`
 
 `analysis.csv` numeric outputs are written with 6 decimal places, and plots are exported at 300 DPI.
 
